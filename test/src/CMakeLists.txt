@@ -1,0 +1,2 @@
+add_executable(pfp_thresholds_ pfp_thresholds.cpp)
+target_link_libraries(pfp_thresholds_ common strdup pfp gsacak sdsl malloc_count)
