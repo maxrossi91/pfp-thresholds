@@ -51,5 +51,6 @@ endif()
 
 # add_subdirectory(include)
 add_subdirectory(test)
+add_subdirectory(utils)
 
 configure_file(${PROJECT_SOURCE_DIR}/pipeline/pfp_thresholds ${PROJECT_BINARY_DIR}/pfp_thresholds)
