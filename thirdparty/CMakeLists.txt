@@ -106,5 +106,24 @@ endif()
 #   add_subdirectory(${pfp_ds_SOURCE_DIR} ${pfp_ds_BINARY_DIR} EXCLUDE_FROM_ALL)
 # endif()
 
+## Add rlbwt2lcp
+FetchContent_Declare(
+  rlbwt2lcp
+  GIT_REPOSITORY https://github.com/nicolaprezza/rlbwt2lcp
+)
 
+FetchContent_GetProperties(rlbwt2lcp)
+if(NOT rlbwt2lcp_POPULATED)
+  FetchContent_Populate(rlbwt2lcp)
+
+  add_subdirectory(${rlbwt2lcp_SOURCE_DIR} ${rlbwt2lcp_BINARY_DIR} )#EXCLUDE_FROM_ALL)
+  # add_library(rlbwt2lcp OBJECT  ${rlbwt2lcp_SOURCE_DIR}/internal/include.hpp 
+  #                               ${rlbwt2lcp_SOURCE_DIR}/internal/lcp.hpp 
+  #                               ${rlbwt2lcp_SOURCE_DIR}/internal/dna_string.hpp 
+  #                               ${rlbwt2lcp_SOURCE_DIR}/internal/dna_string_n.hpp
+  #                               ${rlbwt2lcp_SOURCE_DIR}/internal/dna_bwt.hpp
+  #                               ${rlbwt2lcp_SOURCE_DIR}/internal/dna_bwt_n.hpp
+  #                               )
+  # target_include_directories(rlbwt2lcp PUBLIC "${rlbwt2lcp_BINARY_DIR}/internal")
+endif()
 
