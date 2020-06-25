@@ -93,18 +93,18 @@ endif()
 
 
 
-## Add pfp_ds
-FetchContent_Declare(
-  pfp_ds
-  GIT_REPOSITORY https://github.com/maxrossi91/pfp-data-structures
-)
+# ## Add pfp_ds
+# FetchContent_Declare(
+#   pfp_ds
+#   GIT_REPOSITORY https://github.com/maxrossi91/pfp-data-structures
+# )
 
-FetchContent_GetProperties(pfp_ds)
-if(NOT pfp_ds_POPULATED)
-  FetchContent_Populate(pfp_ds)
+# FetchContent_GetProperties(pfp_ds)
+# if(NOT pfp_ds_POPULATED)
+#   FetchContent_Populate(pfp_ds)
 
-  add_subdirectory(${pfp_ds_SOURCE_DIR} ${pfp_ds_BINARY_DIR} EXCLUDE_FROM_ALL)
-endif()
+#   add_subdirectory(${pfp_ds_SOURCE_DIR} ${pfp_ds_BINARY_DIR} EXCLUDE_FROM_ALL)
+# endif()
 
 
 

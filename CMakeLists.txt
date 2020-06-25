@@ -49,7 +49,7 @@ else ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
 endif()
 
 
-# add_subdirectory(include)
+add_subdirectory(include)
 add_subdirectory(test)
 add_subdirectory(utils)
 

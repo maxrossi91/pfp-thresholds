@@ -26,33 +26,16 @@
 #define VERBOSE
 
 #include <common.hpp>
-#include <strdup.hpp>
 
 #include <sdsl/rmq_support.hpp>
 #include <sdsl/int_vector.hpp>
 #include <sdsl/io.hpp>
 
 #include <pfp.hpp>
-#include <lce_support.hpp>
-#include <sa_support.hpp>
 
 #include <malloc_count.h>
 
-template <typename T>
-void write_file(const char *filename, std::vector<T> &ptr)
-{
-  struct stat filestat;
-  FILE *fd;
 
-  if ((fd = fopen(filename, "w")) == nullptr)
-    error("open() file " + std::string(filename) + " failed");
-
-  size_t length = ptr.size();
-  if ((fwrite(&ptr[0], sizeof(T), length, fd)) != length)
-    error("fwrite() file " + std::string(filename) + " failed");
-
-  fclose(fd);
-}
 
 int main(int argc, char* const argv[]) {
 
@@ -74,7 +57,7 @@ int main(int argc, char* const argv[]) {
   verbose("Computing PFP data structures");
   std::chrono::high_resolution_clock::time_point t_insert_start = std::chrono::high_resolution_clock::now();
 
-  pf_parsing<> pf(args.filename, args.w);
+  pf_parsing pf(args.filename, args.w);
 
   std::chrono::high_resolution_clock::time_point t_insert_end = std::chrono::high_resolution_clock::now();
 

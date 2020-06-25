@@ -26,7 +26,6 @@
 #define VERBOSE
 
 #include <common.hpp>
-#include <strdup.hpp>
 
 #include <sdsl/rmq_support.hpp>
 #include <sdsl/int_vector.hpp>
@@ -37,21 +36,6 @@
 
 #include <malloc_count.h>
 
-template <typename T>
-void write_file(const char *filename, std::vector<T> &ptr)
-{
-  struct stat filestat;
-  FILE *fd;
-
-  if ((fd = fopen(filename, "w")) == nullptr)
-    error("open() file " + std::string(filename) + " failed");
-
-  size_t length = ptr.size();
-  if ((fwrite(&ptr[0], sizeof(T), length, fd)) != length)
-    error("fwrite() file " + std::string(filename) + " failed");
-
-  fclose(fd);
-}
 
 int main(int argc, char* const argv[]) {
 
