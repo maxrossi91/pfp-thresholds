@@ -80,14 +80,14 @@ int main(int argc, char* const argv[]) {
   size_t len_P = pf.pars.p.size();
 
   std::vector<int_t>  s_lcp_T(1,0);                  // LCP array of T sampled in corrispondence of the beginning of each phrase.
-  std::vector<uint_t> first_P_BWT_P(n_phrases+1); // Position of the first occurrence of the phrase i in BWT_P
-  std::vector<uint_t> last_P_BWT_P(n_phrases+1);  // Position of the last occurrence of the phrase i in BWT_P
+  // std::vector<uint_t> first_P_BWT_P(n_phrases+1); // Position of the first occurrence of the phrase i in BWT_P
+  // std::vector<uint_t> last_P_BWT_P(n_phrases+1);  // Position of the last occurrence of the phrase i in BWT_P
   std::vector<uint_t> min_s_P; // Value of the minimum s_lcp_T in each run of P[SA_P]
   std::vector<uint_t> pos_s_P; // Position of the minimum s_lcp_T in each run of P[SA_P]
 
   std::vector<std::vector<uint_t>> occs_P_BWT_P(n_phrases+1);           // Positions of the occurrences of the phrase i in BWT_P
 
-  std::vector<bool> first_P_BWT_P_visit(n_phrases+1,false); // Position of the first occurrence of the phrase i in BWT_P
+  // std::vector<bool> first_P_BWT_P_visit(n_phrases+1,false); // Position of the first occurrence of the phrase i in BWT_P
 
   size_t last_begin = 0;
   // For all elements of lcpP, compute the corresponding LCP value in T
@@ -136,11 +136,11 @@ int main(int argc, char* const argv[]) {
     size_t prec_phrase_index = (pf.pars.saP[i] == 0? len_P: pf.pars.saP[i]) - 1;
     uint_t prec_phrase = pf.pars.p[prec_phrase_index];
 
-    last_P_BWT_P[prec_phrase] = i;
-    if(!first_P_BWT_P_visit[prec_phrase]){
-      first_P_BWT_P_visit[prec_phrase] = true;
-      first_P_BWT_P[prec_phrase] = i;
-    }
+    // last_P_BWT_P[prec_phrase] = i;
+    // if(!first_P_BWT_P_visit[prec_phrase]){
+    //   first_P_BWT_P_visit[prec_phrase] = true;
+    //   first_P_BWT_P[prec_phrase] = i;
+    // }
     occs_P_BWT_P[prec_phrase].push_back(i);
   }
 
@@ -220,9 +220,9 @@ int main(int argc, char* const argv[]) {
             {
               // Compute the minimum s_lcpP of the phrases following the two phrases
               // we take the first occurrence of the phrase in BWT_P
-              size_t left = first_P_BWT_P[phrase];
+              size_t left = occs_P_BWT_P[phrase][0]; //size_t left = first_P_BWT_P[phrase];
               // and the last occurrence of the previous phrase in BWT_P
-              size_t right = last_P_BWT_P[prev_phrase];
+              size_t right = occs_P_BWT_P[prev_phrase].back(); //last_P_BWT_P[prev_phrase];
               // assume left < right
               if (left > right)
                 std::swap(left, right);
@@ -285,9 +285,9 @@ int main(int argc, char* const argv[]) {
           {
             // Compute the minimum s_lcpP of the phrases following the two phrases
             // we take the first occurrence of the phrase in BWT_P
-            size_t left = first_P_BWT_P[phrase];
+            size_t left = occs_P_BWT_P[phrase][0]; //size_t left = first_P_BWT_P[phrase];
             // and the last occurrence of the previous phrase in BWT_P
-            size_t right = last_P_BWT_P[prev_phrase];
+            size_t right = occs_P_BWT_P[prev_phrase].back(); //last_P_BWT_P[prev_phrase];
             // assume left < right
             if (left > right)
               std::swap(left, right);
