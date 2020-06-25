@@ -29,8 +29,6 @@ Theoretical results:
 
 * Christina Boucher
 * Travis Gagie
-* Giovanni Manzini
-* Gonzalo Navarro
 * Massimiliano Rossi
 
 Implementation:
