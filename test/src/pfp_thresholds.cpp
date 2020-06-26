@@ -36,7 +36,6 @@
 #include <malloc_count.h>
 
 
-
 int main(int argc, char* const argv[]) {
 
 
@@ -377,8 +376,19 @@ int main(int argc, char* const argv[]) {
 
   verbose("Building the thresholds - constructing thresholds");
 
-  std::vector<size_t> thresholds;
-  std::vector<size_t> thresholds_pos_s;
+  // Opening output files
+  FILE *thr_file;
+  std::string outfile = args.filename + std::string(".thr");
+  if ((thr_file = fopen(outfile.c_str(), "w")) == nullptr)
+    error("open() file " + outfile + " failed");
+  
+  FILE *thr_pos_file;
+  outfile = args.filename + std::string(".thr_pos");
+  if ((thr_pos_file = fopen(outfile.c_str(), "w")) == nullptr)
+    error("open() file " + outfile + " failed");
+
+  // std::vector<size_t> thresholds;
+  // std::vector<size_t> thresholds_pos_s;
   std::vector<uint64_t> last_seen(256, 0);
   std::vector<bool> never_seen(256, true);
 
@@ -390,12 +400,19 @@ int main(int argc, char* const argv[]) {
       never_seen[heads[i]] = false;
     }else{
       size_t j = rmq_min_s(last_seen[heads[i]]+1, i-1);
-      thresholds.push_back(min_s[j]);
-      thresholds_pos_s.push_back(pos_s[j]);
+      if (fwrite(&min_s[j], THRBYTES, 1, thr_file) != 1)
+        error("SA write error 1");
+      if (fwrite(&pos_s[j], THRBYTES, 1, thr_pos_file) != 1)
+        error("SA write error 1");
+      // thresholds.push_back(min_s[j]);
+      // thresholds_pos_s.push_back(pos_s[j]);
     }
     last_seen[heads[i]] = i;
   }
 
+  // Close output files
+  fclose(thr_file);
+  fclose(thr_pos_file);
 
   std::chrono::high_resolution_clock::time_point t_end = std::chrono::high_resolution_clock::now();
   auto time = std::chrono::duration<double, std::ratio<1>>(t_end - t_start).count();
@@ -407,19 +424,19 @@ int main(int argc, char* const argv[]) {
   size_t space = 0;
   if (args.memo)
   {
-    space = thresholds.size() * sizeof(thresholds[0]);
-    space += thresholds_pos_s.size() * sizeof(thresholds_pos_s[0]);
+    // space = thresholds.size() * sizeof(thresholds[0]);
+    // space += thresholds_pos_s.size() * sizeof(thresholds_pos_s[0]);
     verbose("Thresholds size (bytes): ", space);
   }
 
+  // verbose("Storing the Thresholds to file");
+  // std::string outfile = args.filename + std::string(".thr");
+  // write_file(outfile.c_str(), thresholds);
+  // outfile = args.filename + std::string(".thr_pos");
+  // write_file(outfile.c_str(), thresholds_pos_s);
+  
   if (args.store)
   {
-    verbose("Storing the Thresholds to file");
-    std::string outfile = args.filename + std::string(".thr");
-    write_file(outfile.c_str(), thresholds);
-    outfile = args.filename + std::string(".thr_pos");
-    write_file(outfile.c_str(), thresholds_pos_s);
-
     verbose("Storing the BWT to file");
     std::vector<uint8_t> bwt;
     for(int i = 1; i < heads.size(); ++i){

@@ -93,8 +93,19 @@ int main(int argc, char* const argv[]) {
 
   // This code gets timed
 
-  std::vector<size_t> thresholds;
-  std::vector<size_t> thresholds_pos_s;
+  // Opening output files
+  FILE *thr_file;
+  std::string outfile = args.filename + std::string(".sdsl.thr");
+  if ((thr_file = fopen(outfile.c_str(), "w")) == nullptr)
+    error("open() file " + outfile + " failed");
+
+  FILE *thr_pos_file;
+  outfile = args.filename + std::string(".sdsl.thr_pos");
+  if ((thr_pos_file = fopen(outfile.c_str(), "w")) == nullptr)
+    error("open() file " + outfile + " failed");
+
+  // std::vector<size_t> thresholds;
+  // std::vector<size_t> thresholds_pos_s;
   std::vector<uint64_t> last_seen(256, 0);
   std::vector<bool> never_seen(256, true);
 
@@ -108,12 +119,19 @@ int main(int argc, char* const argv[]) {
       never_seen[bwt[i]] = false;
     }else{
       size_t j = rmq_lcp(last_seen[bwt[i]]+1, i);
-      thresholds.push_back(lcp[j]);
-      thresholds_pos_s.push_back(j);
+      if (fwrite(&lcp[j], THRBYTES, 1, thr_file) != 1)
+        error("SA write error 1");
+      if (fwrite(&j, THRBYTES, 1, thr_pos_file) != 1)
+        error("SA write error 1");
+      // thresholds.push_back(lcp[j]);
+      // thresholds_pos_s.push_back(j);
     }
     last_seen[bwt[i-1]] = i-1;
   }
 
+  // Close output files
+  fclose(thr_file);
+  fclose(thr_pos_file);
 
   std::chrono::high_resolution_clock::time_point t_end = std::chrono::high_resolution_clock::now();
   auto time = std::chrono::duration<double, std::ratio<1>>(t_end - t_start).count();
@@ -125,29 +143,29 @@ int main(int argc, char* const argv[]) {
   size_t space = 0;
   if (args.memo)
   {
-    space = thresholds.size() * sizeof(thresholds[0]);
-    space += thresholds_pos_s.size() * sizeof(thresholds_pos_s[0]);
+    // space = thresholds.size() * sizeof(thresholds[0]);
+    // space += thresholds_pos_s.size() * sizeof(thresholds_pos_s[0]);
     verbose("Thresholds size (bytes): ", space);
   }
 
   if (args.store)
   {
-    verbose("Storing the Thresholds to file");
-    std::string outfile = args.filename + std::string(".sdsl.thr");
-    write_file(outfile.c_str(), thresholds);
-    outfile = args.filename + std::string(".sdsl.thr_pos");
-    write_file(outfile.c_str(), thresholds_pos_s);
+    // verbose("Storing the Thresholds to file");
+    // std::string outfile = args.filename + std::string(".sdsl.thr");
+    // write_file(outfile.c_str(), thresholds);
+    // outfile = args.filename + std::string(".sdsl.thr_pos");
+    // write_file(outfile.c_str(), thresholds_pos_s);
 
-    verbose("Storing the BWT to file");
-    std::vector<uint8_t> my_bwt;
-    for(size_t i = 0; i < bwt.size(); ++i) my_bwt.push_back(bwt[i]);
-    outfile = args.filename + std::string(".sdsl.bwt");
-    write_file(outfile.c_str(), my_bwt);
-    verbose("Storing the LCP to file");
-    std::vector<int32_t> my_lcp;
-    for(size_t i = 0; i < lcp.size(); ++i ) my_lcp.push_back(lcp[i]);
-    outfile = args.filename + std::string(".sdsl.lcp");
-    write_file(outfile.c_str(), my_lcp);
+    // verbose("Storing the BWT to file");
+    // std::vector<uint8_t> my_bwt;
+    // for(size_t i = 0; i < bwt.size(); ++i) my_bwt.push_back(bwt[i]);
+    // outfile = args.filename + std::string(".sdsl.bwt");
+    // write_file(outfile.c_str(), my_bwt);
+    // verbose("Storing the LCP to file");
+    // std::vector<int32_t> my_lcp;
+    // for(size_t i = 0; i < lcp.size(); ++i ) my_lcp.push_back(lcp[i]);
+    // outfile = args.filename + std::string(".sdsl.lcp");
+    // write_file(outfile.c_str(), my_lcp);
   }
 
   if (args.csv)

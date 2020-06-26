@@ -56,8 +56,7 @@
 #define EndOfDict 0  // end of dictionary delimiter
 //******************************************************************************
 
-
-
+#define THRBYTES 5 // The number of bytes for the thresholds
 
 std::string NowTime();
 void _internal_messageInfo(const std::string message);
