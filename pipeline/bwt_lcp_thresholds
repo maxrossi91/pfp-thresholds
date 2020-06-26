@@ -29,11 +29,10 @@ pfbwtNT_exe     =  os.path.join(bigbwt_dirname, "pfbwtNT.x")
 pfbwt_exe64     =  os.path.join(bigbwt_dirname, "pfbwt64.x")
 pfbwtNT_exe64   =  os.path.join(bigbwt_dirname, "pfbwtNT64.x")
 
-pfp_thresholds  = os.path.join(tools_dirname, "pfp_thresholds")
-pfp_thresholds64  = os.path.join(tools_dirname, "pfp_thresholds64")
+bwt_lcp_thresholds  = os.path.join(tools_dirname, "bwt_lcp_thresholds")
 
 
-class PFPthresholds(threading.Thread):
+class BWT_LCPthresholds(threading.Thread):
     def __init__(self, name, counter, args):
         threading.Thread.__init__(self)
         self.threadID = counter
@@ -48,19 +47,12 @@ class PFPthresholds(threading.Thread):
       print("{} PFP started!".format(self.getName()))        # "Thread-x started!"
 
       start = time.time()
-      parse_size = os.path.getsize(args.input+".parse")/4
-      dictionary_size = os.path.getsize(args.input+".dict")
+     
+      command = "{exe} {file} -w {wsize}".format(
+          exe = os.path.join(args.bigbwt_dir,bwt_lcp_thresholds),
+          wsize=args.wsize, file=args.input+".bwt")
 
-      if(parse_size >=  (2**31-1) or dictionary_size >=  (2**31-4) ):
-        command = "{exe} {file} -w {wsize}".format(
-                  exe = os.path.join(args.bigbwt_dir,pfp_thresholds64),
-                  wsize=args.wsize, file=args.input)
-      else:
-        command = "{exe} {file} -w {wsize}".format(
-            exe = os.path.join(args.bigbwt_dir,pfp_thresholds),
-            wsize=args.wsize, file=args.input)
-
-      if args.s: command += " -s"
+      command += " -s"
       if args.m: command += " -m"
       
       print("==== Computing Thresholds. Command:", command)
@@ -212,13 +204,13 @@ def main():
 
     # ----------- computation of the PFP data structures
     
-    pfpds_thread = PFPthresholds(name = "{}".format(args.input), args=args, counter=1)  # ...Instantiate a thread and pass a unique ID to it
-    pfpds_thread.start()                                       # ...Start the thread, invoke the run method
     bwt_thread = BWT(name = "{}".format(args.input), args=args, counter=2)  # ...Instantiate a thread and pass a unique ID to it
     bwt_thread.start()                                       # ...Start the thread, invoke the run method
-
-    pfpds_thread.join()
     bwt_thread.join()
+
+    pfpds_thread = BWT_LCPthresholds(name = "{}".format(args.input), args=args, counter=1)  # ...Instantiate a thread and pass a unique ID to it
+    pfpds_thread.start()                                       # ...Start the thread, invoke the run method
+    pfpds_thread.join()
 
     print("Total construction time: {0:.4f}".format(time.time()-start0))
     # ---- print elapsed time to file
