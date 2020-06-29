@@ -139,14 +139,14 @@ def main():
   parser.add_argument('-w', '--wsize', help='sliding window size (def. 10)', default=10, type=int)
   parser.add_argument('-p', '--mod', help='hash modulus (def. 100)', default=100, type=int)
   parser.add_argument('-t', help='number of helper threads (def. None)', default=0, type=int)
- # parser.add_argument('-s',  help='compute the start run-length sampled Suffix Array',action='store_true')
- # parser.add_argument('-e',  help='compute the end run-length sampled Suffix Array',action='store_true')
+  parser.add_argument('-s',  help='compute the start run-length sampled Suffix Array',action='store_true')
+  parser.add_argument('-e',  help='compute the end run-length sampled Suffix Array',action='store_true')
  # parser.add_argument('-S',  help='compute the full Suffix Array',action='store_true')
   parser.add_argument('-k',  help='keep temporary files',action='store_true')
   parser.add_argument('-v',  help='verbose',action='store_true')
  # parser.add_argument('-c',  help='check BWT using SACA-K',action='store_true')
   parser.add_argument('-f', help='read fasta',action='store_true')
-  parser.add_argument('-s', help='store ds',action='store_true')
+  # parser.add_argument('-s', help='store ds',action='store_true')
   parser.add_argument('-m', help='print memory usage',action='store_true')
  # parser.add_argument('--sum', help='compute output files sha256sum',action='store_true')
   parser.add_argument('--parsing',  help='stop after the parsing phase (debug only)',action='store_true')
@@ -157,9 +157,8 @@ def main():
     print("bigbwt does not current support FASTQ format! Exiting...")
     return
 
-  
 
-  logfile_name = args.input + ".thr.log"
+  logfile_name = args.input + ".thr.bwt_lcp.log"
   # get main bigbwt directory
   args.bigbwt_dir = os.path.split(sys.argv[0])[0]
   print("Sending logging messages to file:", logfile_name)

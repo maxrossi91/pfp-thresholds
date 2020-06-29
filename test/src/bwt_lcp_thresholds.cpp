@@ -126,13 +126,14 @@ void build_thresholds(Args args){
     verbose("Thresholds size (bytes): ", space);
   }
 
+  // verbose("Storing the Thresholds to file");
+  // std::string outfile = args.filename + std::string(".rlbwt2lcp.thr");
+  // write_file(outfile.c_str(), thresholds);
+  // outfile = args.filename + std::string(".rlbwt2lcp.thr_pos");
+  // write_file(outfile.c_str(), thresholds_pos_s);
+ 
   if (args.store)
   {
-    // verbose("Storing the Thresholds to file");
-    // std::string outfile = args.filename + std::string(".rlbwt2lcp.thr");
-    // write_file(outfile.c_str(), thresholds);
-    // outfile = args.filename + std::string(".rlbwt2lcp.thr_pos");
-    // write_file(outfile.c_str(), thresholds_pos_s);
   }
 
   if (args.csv)

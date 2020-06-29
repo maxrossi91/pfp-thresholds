@@ -147,8 +147,10 @@ int main(int argc, char* const argv[]) {
   verbose("Building the thresholds - min_s and pos_s");
   sdsl::rmq_succinct_sct<> rmq_s_lcp_T = sdsl::rmq_succinct_sct<>(&s_lcp_T);
 
-  std::vector<uint_t> min_s(1,pf.n); // Value of the minimum lcp_T in each run of BWT_T
-  std::vector<uint_t> pos_s(1,0); // Position of the minimum lcp_T in each run of BWT_T
+  std::vector<size_t> min_s(1,pf.n); // Value of the minimum lcp_T in each run of BWT_T
+  std::vector<size_t> pos_s(1,0); // Position of the minimum lcp_T in each run of BWT_T
+  // std::vector<uint_t> min_s(1,pf.n); // Value of the minimum lcp_T in each run of BWT_T
+  // std::vector<uint_t> pos_s(1,0); // Position of the minimum lcp_T in each run of BWT_T
 
   std::vector<uint8_t> heads(1,0);
   std::vector<size_t> lengths(1,0); //  Debug only
