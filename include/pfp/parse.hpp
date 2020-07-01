@@ -40,7 +40,7 @@ public:
   std::vector<uint_t> saP;
   std::vector<uint_t> isaP;
   std::vector<int_t> lcpP;
-  sdsl::rmq_succinct_sct<> rmq_lcp_P;
+  // sdsl::rmq_succinct_sct<> rmq_lcp_P;
 
   size_t alphabet_size;
 
@@ -103,11 +103,11 @@ public:
 
 
 
-    verbose("Computing RMQ over LCP of the parsing");
-    // Compute the LCP rank of P
-    _elapsed_time(
-      rmq_lcp_P = sdsl::rmq_succinct_sct<>(&lcpP);
-    );
+    // verbose("Computing RMQ over LCP of the parsing");
+    // // Compute the LCP rank of P
+    // _elapsed_time(
+    //   rmq_lcp_P = sdsl::rmq_succinct_sct<>(&lcpP);
+    // );
 
 
   }
@@ -122,7 +122,7 @@ public:
     written_bytes += my_serialize(saP, out, child, "saP");
     written_bytes += my_serialize(isaP, out, child, "isaP");
     written_bytes += my_serialize(lcpP, out, child, "lcpP");
-    written_bytes += rmq_lcp_P.serialize(out, child, "rmq_lcp_P");
+    // written_bytes += rmq_lcp_P.serialize(out, child, "rmq_lcp_P");
     written_bytes += sdsl::write_member(alphabet_size, out, child, "alphabet_size");
     
 
@@ -137,7 +137,7 @@ public:
     my_load(saP, in);
     my_load(isaP, in);
     my_load(lcpP, in);
-    rmq_lcp_P.load(in);
+    // rmq_lcp_P.load(in);
     sdsl::read_member(alphabet_size, in);
   }
 

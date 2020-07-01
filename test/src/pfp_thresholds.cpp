@@ -35,7 +35,6 @@
 
 #include <malloc_count.h>
 
-
 int main(int argc, char* const argv[]) {
 
 
@@ -66,8 +65,8 @@ int main(int argc, char* const argv[]) {
 
 
   verbose("Building the thresholds");
-  
 
+  verbose("Memory peak: ", malloc_count_peak());
   std::chrono::high_resolution_clock::time_point t_start = std::chrono::high_resolution_clock::now();
 
   // This code gets timed
@@ -78,15 +77,34 @@ int main(int argc, char* const argv[]) {
   size_t n_phrases = pf.dict.n_phrases();
   size_t len_P = pf.pars.p.size();
 
-  std::vector<int_t>  s_lcp_T(1,0);                  // LCP array of T sampled in corrispondence of the beginning of each phrase.
-  // std::vector<uint_t> first_P_BWT_P(n_phrases+1); // Position of the first occurrence of the phrase i in BWT_P
-  // std::vector<uint_t> last_P_BWT_P(n_phrases+1);  // Position of the last occurrence of the phrase i in BWT_P
-  std::vector<uint_t> min_s_P; // Value of the minimum s_lcp_T in each run of P[SA_P]
-  std::vector<uint_t> pos_s_P; // Position of the minimum s_lcp_T in each run of P[SA_P]
+  std::vector<size_t>  s_lcp_T(1,0);                  // LCP array of T sampled in corrispondence of the beginning of each phrase.
 
-  std::vector<std::vector<uint_t>> occs_P_BWT_P(n_phrases+1);           // Positions of the occurrences of the phrase i in BWT_P
+  // std::vector<uint_t> min_s_P; // Value of the minimum s_lcp_T in each run of P[SA_P]
+  // std::vector<uint_t> pos_s_P; // Position of the minimum s_lcp_T in each run of P[SA_P]
+
+  // std::vector<std::vector<uint_t>> occs_P_BWT_P(n_phrases+1);           // Positions of the occurrences of the phrase i in BWT_P
+
+  // Check if it is worth to compute it here or read it from file, pushing the computation one step further in the pipeline.
+  std::vector<int_t> occs(n_phrases+1); // Keeps trace of the occurrences of each phrase in BWT_P
+  std::vector<int_t> ilist(len_P); // Inverted list of phrases of P in BWT_P
+
+
+  sdsl::bit_vector ilist_s(len_P+1,0); // The ith 1 is in correspondence of the first occurrence of the ith phrase
+  
+  {
+    size_t j = 0;
+    ilist_s[j++] = 1; // this is equivalent to set pf.freq[0]=1;
+    ilist_s[j] = 1; 
+    for(size_t i = 1; i < pf.freq.size(); ++i){
+      j += pf.freq[i];
+      ilist_s[j] = 1;
+    }
+  }
+
+  sdsl::bit_vector::select_1_type select_ilist_s(&ilist_s);
 
   // std::vector<bool> first_P_BWT_P_visit(n_phrases+1,false); // Position of the first occurrence of the phrase i in BWT_P
+
 
   size_t last_begin = 0;
   // For all elements of lcpP, compute the corresponding LCP value in T
@@ -118,42 +136,56 @@ int main(int argc, char* const argv[]) {
     }
 
 
-    // Compute mins and poss
-    if (pf.pars.p[pf.pars.saP[i-1]] == pf.pars.p[pf.pars.saP[i]]){
-      // If both suffixes starts with the same phrase, update the value of the min
-      if(min_s_P.back() > s_lcp_T.back() - l_com_phrases){
-        min_s_P.back() = s_lcp_T.back() - l_com_phrases;
-        pos_s_P.back() = i - last_begin;
-      }
-    } else {
-      min_s_P.push_back(pf.n + 10);
-      pos_s_P.push_back(0);
-      last_begin = i;
-    }
+    // // Compute mins and poss
+    // if (pf.pars.p[pf.pars.saP[i-1]] == pf.pars.p[pf.pars.saP[i]]){
+    //   // If both suffixes starts with the same phrase, update the value of the min
+    //   if(min_s_P.back() > s_lcp_T.back() - l_com_phrases){
+    //     min_s_P.back() = s_lcp_T.back() - l_com_phrases;
+    //     pos_s_P.back() = i - last_begin;
+    //   }
+    // } else {
+    //   min_s_P.push_back(pf.n + 10);
+    //   pos_s_P.push_back(0);
+    //   last_begin = i;
+    // }
 
     // Update first and last occurrence of each phrase in BWT_P
     size_t prec_phrase_index = (pf.pars.saP[i] == 0? len_P: pf.pars.saP[i]) - 1;
     uint_t prec_phrase = pf.pars.p[prec_phrase_index];
 
-    // last_P_BWT_P[prec_phrase] = i;
-    // if(!first_P_BWT_P_visit[prec_phrase]){
-    //   first_P_BWT_P_visit[prec_phrase] = true;
-    //   first_P_BWT_P[prec_phrase] = i;
-    // }
-    occs_P_BWT_P[prec_phrase].push_back(i);
+    // occs_P_BWT_P[prec_phrase].push_back(i);
+
+    size_t ilist_p = select_ilist_s(prec_phrase+1) + occs[prec_phrase]++;
+    ilist[ilist_p] = i;
   }
 
+  // Computes the ilist for the first element.
+  {
+    size_t i = 0;
+    size_t prec_phrase_index = (pf.pars.saP[i] == 0 ? len_P : pf.pars.saP[i]) - 1;
+    uint_t prec_phrase = pf.pars.p[prec_phrase_index];
+
+    // occs_P_BWT_P[prec_phrase].push_back(i);
+
+    size_t ilist_p = select_ilist_s(prec_phrase + 1) + occs[prec_phrase]++;
+    ilist[ilist_p] = i;
+  }
+
+  // Reducing memory tentative
+  pf.pars.lcpP.clear(); pf.pars.lcpP.shrink_to_fit();
+  pf.pars.p.clear(); pf.pars.p.shrink_to_fit();
+  occs.clear(); occs.shrink_to_fit();
+
+  verbose("Memory peak: ", malloc_count_peak());
   // Computing the thresholds
   verbose("Building the thresholds - min_s and pos_s");
   sdsl::rmq_succinct_sct<> rmq_s_lcp_T = sdsl::rmq_succinct_sct<>(&s_lcp_T);
 
   std::vector<size_t> min_s(1,pf.n); // Value of the minimum lcp_T in each run of BWT_T
   std::vector<size_t> pos_s(1,0); // Position of the minimum lcp_T in each run of BWT_T
-  // std::vector<uint_t> min_s(1,pf.n); // Value of the minimum lcp_T in each run of BWT_T
-  // std::vector<uint_t> pos_s(1,0); // Position of the minimum lcp_T in each run of BWT_T
 
   std::vector<uint8_t> heads(1,0);
-  std::vector<size_t> lengths(1,0); //  Debug only
+  // std::vector<size_t> lengths(1,0); //  Debug only
 
   size_t prev_i = 0;
   size_t prev_phrase = 0;
@@ -220,10 +252,14 @@ int main(int argc, char* const argv[]) {
             if (lcp_suffix >= suffix_length && suffix_length == prev_suffix_length)
             {
               // Compute the minimum s_lcpP of the phrases following the two phrases
+              // // we take the first occurrence of the phrase in BWT_P
+              // size_t left = occs_P_BWT_P[phrase][0]; //size_t left = first_P_BWT_P[phrase];
+              // // and the last occurrence of the previous phrase in BWT_P
+              // size_t right = occs_P_BWT_P[prev_phrase].back(); //last_P_BWT_P[prev_phrase];
               // we take the first occurrence of the phrase in BWT_P
-              size_t left = occs_P_BWT_P[phrase][0]; //size_t left = first_P_BWT_P[phrase];
+              size_t left = ilist[select_ilist_s(phrase + 1)]; //size_t left = first_P_BWT_P[phrase];
               // and the last occurrence of the previous phrase in BWT_P
-              size_t right = occs_P_BWT_P[prev_phrase].back(); //last_P_BWT_P[prev_phrase];
+              size_t right = ilist[select_ilist_s(prev_phrase + 2) - 1]; //last_P_BWT_P[prev_phrase];
               // assume left < right
               if (left > right)
                 std::swap(left, right);
@@ -246,20 +282,37 @@ int main(int argc, char* const argv[]) {
           if (heads.back() != next_BWT_char)
           {
             heads.push_back(next_BWT_char);
-            lengths.push_back(0); // Debug only
+            // lengths.push_back(0); // Debug only
             // Create the new min
+            // min_s.push_back(INT64_MAX);
+            // pos_s.push_back(0);
             min_s.push_back(lcp_suffix);
             pos_s.push_back(j);
           }
 
-          lengths.back() += pf.freq[phrase]; // Debug only
+          // lengths.back() += pf.freq[phrase]; // Debug only
+
+          // get min_s_P using rmq_s_lcp_T
+          size_t left = select_ilist_s(phrase+1);
+          size_t right = select_ilist_s(phrase+2)-1;
+          if (left < right && lcp_suffix >= suffix_length)
+          {
+            size_t pos_s_P = rmq_s_lcp_T(left + 1, right);
+            size_t min_s_P = s_lcp_T[pos_s_P] + suffix_length - pf.dict.length_of_phrase(phrase);
+            if(min_s.back()>min_s_P){
+              min_s.back() = min_s_P;
+              pos_s.back() = j + pos_s_P - left;
+            }
+          }
+
+          // assert(suffix_length + min_s_P[phrase-1] == _min_s_P);
 
           // Update current min
-          if (lcp_suffix >= suffix_length && min_s.back() > suffix_length + min_s_P[phrase])
-          {
-            min_s.back() = min_s_P[phrase + suffix_length];
-            pos_s.back() = pos_s_P[phrase];
-          }
+          // if (lcp_suffix >= suffix_length && min_s.back() > suffix_length + min_s_P[phrase])
+          // {
+          //   min_s.back() = min_s_P[phrase] + suffix_length;
+          //   pos_s.back() = j + pos_s_P[phrase];
+          // }
 
           // Update prevs
           prev_i = i;
@@ -285,10 +338,14 @@ int main(int argc, char* const argv[]) {
           if (lcp_suffix >= suffix_length && suffix_length == prev_suffix_length)
           {
             // Compute the minimum s_lcpP of the phrases following the two phrases
+            // // we take the first occurrence of the phrase in BWT_P
+            // size_t left = occs_P_BWT_P[phrase][0]; //size_t left = first_P_BWT_P[phrase];
+            // // and the last occurrence of the previous phrase in BWT_P
+            // size_t right = occs_P_BWT_P[prev_phrase].back(); //last_P_BWT_P[prev_phrase];
             // we take the first occurrence of the phrase in BWT_P
-            size_t left = occs_P_BWT_P[phrase][0]; //size_t left = first_P_BWT_P[phrase];
+            size_t left = ilist[select_ilist_s(phrase + 1)]; //size_t left = first_P_BWT_P[phrase];
             // and the last occurrence of the previous phrase in BWT_P
-            size_t right = occs_P_BWT_P[prev_phrase].back(); //last_P_BWT_P[prev_phrase];
+            size_t right = ilist[select_ilist_s(prev_phrase + 2) - 1]; //last_P_BWT_P[prev_phrase];
             // assume left < right
             if (left > right)
               std::swap(left, right);
@@ -299,7 +356,7 @@ int main(int argc, char* const argv[]) {
           }
         }
 
-        typedef std::pair < std::vector<uint_t>::iterator, std::pair<std::vector<uint_t>::iterator, uint8_t> > pq_t;
+        typedef std::pair < int_t*, std::pair<int_t*, uint8_t> > pq_t;
 
         // using lambda to compare elements.
         auto cmp = [](const pq_t &lhs, const pq_t &rhs) {
@@ -309,8 +366,22 @@ int main(int argc, char* const argv[]) {
         std::priority_queue<pq_t, std::vector<pq_t>, decltype(cmp)> pq(cmp);
         for(size_t k = 0; k < same_suffix.size(); ++k){
           auto phrase = same_suffix[k];
-          pq.push({occs_P_BWT_P[phrase].begin(), {occs_P_BWT_P[phrase].end(),bwt_chars[k]}});
+          size_t begin = select_ilist_s(phrase + 1);
+          size_t end = select_ilist_s(phrase + 2);
+          pq.push({&ilist[begin], {&ilist[end],bwt_chars[k]}});
         }
+        // typedef std::pair < std::vector<uint_t>::iterator, std::pair<std::vector<uint_t>::iterator, uint8_t> > pq_t;
+
+        // // using lambda to compare elements.
+        // auto cmp = [](const pq_t &lhs, const pq_t &rhs) {
+        //   return *lhs.first > *rhs.first;
+        // };
+
+        // std::priority_queue<pq_t, std::vector<pq_t>, decltype(cmp)> pq(cmp);
+        // for(size_t k = 0; k < same_suffix.size(); ++k){
+        //   auto phrase = same_suffix[k];
+        //   pq.push({occs_P_BWT_P[phrase].begin(), {occs_P_BWT_P[phrase].end(),bwt_chars[k]}});
+        // }
 
         size_t prev_occ;
         bool first = true;
@@ -344,13 +415,15 @@ int main(int argc, char* const argv[]) {
           if (heads.back() != next_BWT_char)
           {
             heads.push_back(next_BWT_char);
-            lengths.push_back(0); // Debug only
+            // lengths.push_back(0); // Debug only
             // Create the new min
+            // min_s.push_back(INT64_MAX);
+            // pos_s.push_back(0);
             min_s.push_back(lcp_suffix);
             pos_s.push_back(j);
           }
 
-          lengths.back()++; // Debug only
+          // lengths.back()++; // Debug only
 
           // Update prevs
           prev_occ = *curr.first;
@@ -375,7 +448,7 @@ int main(int argc, char* const argv[]) {
     }
 
   }
-
+  verbose("Memory peak: ", malloc_count_peak());
   verbose("Building the thresholds - constructing thresholds");
 
   // Opening output files
@@ -439,13 +512,13 @@ int main(int argc, char* const argv[]) {
   
   if (args.store)
   {
-    verbose("Storing the BWT to file");
-    std::vector<uint8_t> bwt;
-    for(int i = 1; i < heads.size(); ++i){
-      bwt.insert(bwt.end(), lengths[i], heads[i] );
-    }
-    outfile = args.filename + std::string(".my.bwt");
-    write_file(outfile.c_str(), bwt);
+    // verbose("Storing the BWT to file");
+    // std::vector<uint8_t> bwt;
+    // for(int i = 1; i < heads.size(); ++i){
+    //   bwt.insert(bwt.end(), lengths[i], heads[i] );
+    // }
+    // outfile = args.filename + std::string(".pfp.bwt");
+    // write_file(outfile.c_str(), bwt);
   }
 
   if (args.csv)

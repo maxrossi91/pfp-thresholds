@@ -139,6 +139,7 @@ public:
 
   void clear_unnecessary_elements(){
     // NtD
+    pars.isaP.clear(); pars.isaP.shrink_to_fit();
   }
 
   // Serialize to a stream.
