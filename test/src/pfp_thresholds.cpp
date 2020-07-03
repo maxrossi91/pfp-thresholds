@@ -32,7 +32,8 @@
 #include <sdsl/io.hpp>
 
 #include <pfp.hpp>
-#include <pfp_lcp.hpp>
+#include <pfp_thresholds.hpp>
+// #include <pfp_lcp.hpp>
 
 #include <malloc_count.h>
 
@@ -72,61 +73,63 @@ int main(int argc, char* const argv[]) {
 
   // This code gets timed
 
-  // Building the sampled LCP array of T in corrispondence of the beginning of each phrase.
-  verbose("Building the thresholds - sampled LCP");
+  pfp_thresholds thr(pf, args.filename);
 
-  size_t n_phrases = pf.dict.n_phrases();
-  size_t len_P = pf.pars.p.size();
+  // Building the sampled LCP array of T in corrispondence of the beginning of each phrase.
+  // verbose("Building the thresholds - sampled LCP");
+
+  // size_t n_phrases = pf.dict.n_phrases();
+  // size_t len_P = pf.pars.p.size();
 
   // Computing the thresholds
-  verbose("Building the thresholds - min_s and pos_s");
+  // verbose("Building the thresholds - min_s and pos_s");
 
   
-  pfp_lcp lcp(pf);
+  // pfp_lcp lcp(pf);
 
   
-  verbose("Memory peak: ", malloc_count_peak());
-  verbose("Building the thresholds - constructing thresholds");
+  // verbose("Memory peak: ", malloc_count_peak());
+  // verbose("Building the thresholds - constructing thresholds");
 
-  // Opening output files
-  FILE *thr_file;
-  std::string outfile = args.filename + std::string(".thr");
-  if ((thr_file = fopen(outfile.c_str(), "w")) == nullptr)
-    error("open() file " + outfile + " failed");
+  // // Opening output files
+  // FILE *thr_file;
+  // std::string outfile = args.filename + std::string(".thr");
+  // if ((thr_file = fopen(outfile.c_str(), "w")) == nullptr)
+  //   error("open() file " + outfile + " failed");
   
-  FILE *thr_pos_file;
-  outfile = args.filename + std::string(".thr_pos");
-  if ((thr_pos_file = fopen(outfile.c_str(), "w")) == nullptr)
-    error("open() file " + outfile + " failed");
+  // FILE *thr_pos_file;
+  // outfile = args.filename + std::string(".thr_pos");
+  // if ((thr_pos_file = fopen(outfile.c_str(), "w")) == nullptr)
+  //   error("open() file " + outfile + " failed");
 
-  // std::vector<size_t> thresholds;
-  // std::vector<size_t> thresholds_pos_s;
-  std::vector<uint64_t> last_seen(256, 0);
-  std::vector<bool> never_seen(256, true);
+  // // std::vector<size_t> thresholds;
+  // // std::vector<size_t> thresholds_pos_s;
+  // std::vector<uint64_t> last_seen(256, 0);
+  // std::vector<bool> never_seen(256, true);
 
-  sdsl::rmq_succinct_sct<> rmq_min_s = sdsl::rmq_succinct_sct<>(&lcp.min_s);
+  // sdsl::rmq_succinct_sct<> rmq_min_s = sdsl::rmq_succinct_sct<>(&lcp.min_s);
 
-  for(size_t i = 1; i < lcp.heads.size(); ++i){
-    if (never_seen[lcp.heads[i]])
-    {
-      never_seen[lcp.heads[i]] = false;
-    }
-    else
-    {
-      size_t j = rmq_min_s(last_seen[lcp.heads[i]] + 1, i - 1);
-      if (fwrite(&lcp.min_s[j], THRBYTES, 1, thr_file) != 1)
-        error("SA write error 1");
-      if (fwrite(&lcp.pos_s[j], THRBYTES, 1, thr_pos_file) != 1)
-        error("SA write error 1");
-      // thresholds.push_back(min_s[j]);
-      // thresholds_pos_s.push_back(pos_s[j]);
-    }
-    last_seen[lcp.heads[i]] = i;
-  }
+  // for(size_t i = 1; i < lcp.heads.size(); ++i){
+  //   if (never_seen[lcp.heads[i]])
+  //   {
+  //     never_seen[lcp.heads[i]] = false;
+  //   }
+  //   else
+  //   {
+  //     size_t j = rmq_min_s(last_seen[lcp.heads[i]] + 1, i - 1);
+  //     if (fwrite(&lcp.min_s[j], THRBYTES, 1, thr_file) != 1)
+  //       error("SA write error 1");
+  //     if (fwrite(&lcp.pos_s[j], THRBYTES, 1, thr_pos_file) != 1)
+  //       error("SA write error 1");
+  //     // thresholds.push_back(min_s[j]);
+  //     // thresholds_pos_s.push_back(pos_s[j]);
+  //   }
+  //   last_seen[lcp.heads[i]] = i;
+  // }
 
-  // Close output files
-  fclose(thr_file);
-  fclose(thr_pos_file);
+  // // Close output files
+  // fclose(thr_file);
+  // fclose(thr_pos_file);
 
   std::chrono::high_resolution_clock::time_point t_end = std::chrono::high_resolution_clock::now();
   auto time = std::chrono::duration<double, std::ratio<1>>(t_end - t_start).count();
