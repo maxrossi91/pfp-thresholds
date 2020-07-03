@@ -32,6 +32,7 @@
 #include <sdsl/io.hpp>
 
 #include <pfp.hpp>
+#include <pfp_lcp.hpp>
 
 #include <malloc_count.h>
 
@@ -77,377 +78,13 @@ int main(int argc, char* const argv[]) {
   size_t n_phrases = pf.dict.n_phrases();
   size_t len_P = pf.pars.p.size();
 
-  std::vector<size_t>  s_lcp_T(1,0);                  // LCP array of T sampled in corrispondence of the beginning of each phrase.
-
-  // std::vector<uint_t> min_s_P; // Value of the minimum s_lcp_T in each run of P[SA_P]
-  // std::vector<uint_t> pos_s_P; // Position of the minimum s_lcp_T in each run of P[SA_P]
-
-  // std::vector<std::vector<uint_t>> occs_P_BWT_P(n_phrases+1);           // Positions of the occurrences of the phrase i in BWT_P
-
-  // Check if it is worth to compute it here or read it from file, pushing the computation one step further in the pipeline.
-  std::vector<int_t> occs(n_phrases+1); // Keeps trace of the occurrences of each phrase in BWT_P
-  std::vector<int_t> ilist(len_P); // Inverted list of phrases of P in BWT_P
-
-
-  sdsl::bit_vector ilist_s(len_P+1,0); // The ith 1 is in correspondence of the first occurrence of the ith phrase
-  
-  {
-    size_t j = 0;
-    ilist_s[j++] = 1; // this is equivalent to set pf.freq[0]=1;
-    ilist_s[j] = 1; 
-    for(size_t i = 1; i < pf.freq.size(); ++i){
-      j += pf.freq[i];
-      ilist_s[j] = 1;
-    }
-  }
-
-  sdsl::bit_vector::select_1_type select_ilist_s(&ilist_s);
-
-  // std::vector<bool> first_P_BWT_P_visit(n_phrases+1,false); // Position of the first occurrence of the phrase i in BWT_P
-
-
-  size_t last_begin = 0;
-  // For all elements of lcpP, compute the corresponding LCP value in T
-  for(size_t i = 1; i < len_P; ++i){
-    size_t s_i = pf.select_b_p(pf.pars.saP[i] + 1);
-    size_t e_i = pf.select_b_p(pf.pars.saP[i] + pf.pars.lcpP[i] + 1);
-
-    size_t l_com_phrases = e_i - s_i;
-
-    assert(pf.pars.lcpP[i]>0 || l_com_phrases==0);
-
-    uint_t a = pf.pars.p[pf.pars.saP[i] + pf.pars.lcpP[i]];
-    uint_t b = pf.pars.p[pf.pars.saP[i-1] + pf.pars.lcpP[i]];
-
-    if(a == 0 || b == 0){ // we are comparing a phrase with the termination character of P that is not a phrase.
-      s_lcp_T.push_back(0);
-    }else{
-      // Compute the lcp between phrases a and b
-      auto a_in_sa = pf.dict.isaD[pf.dict.select_b_d(a)]; // position of the phrase a in saD
-      auto b_in_sa = pf.dict.isaD[pf.dict.select_b_d(b)]; // position of the phrase b in saD
-
-      auto lcp_left = std::min(a_in_sa,b_in_sa) + 1;
-      auto lcp_right = max(a_in_sa,b_in_sa);
-
-      size_t lcp_a_b_i = pf.dict.rmq_lcp_D(lcp_left, lcp_right);
-      auto lcp_a_b = pf.dict.lcpD[lcp_a_b_i];
-
-      s_lcp_T.push_back(l_com_phrases + lcp_a_b);
-    }
-
-
-    // // Compute mins and poss
-    // if (pf.pars.p[pf.pars.saP[i-1]] == pf.pars.p[pf.pars.saP[i]]){
-    //   // If both suffixes starts with the same phrase, update the value of the min
-    //   if(min_s_P.back() > s_lcp_T.back() - l_com_phrases){
-    //     min_s_P.back() = s_lcp_T.back() - l_com_phrases;
-    //     pos_s_P.back() = i - last_begin;
-    //   }
-    // } else {
-    //   min_s_P.push_back(pf.n + 10);
-    //   pos_s_P.push_back(0);
-    //   last_begin = i;
-    // }
-
-    // Update first and last occurrence of each phrase in BWT_P
-    size_t prec_phrase_index = (pf.pars.saP[i] == 0? len_P: pf.pars.saP[i]) - 1;
-    uint_t prec_phrase = pf.pars.p[prec_phrase_index];
-
-    // occs_P_BWT_P[prec_phrase].push_back(i);
-
-    size_t ilist_p = select_ilist_s(prec_phrase+1) + occs[prec_phrase]++;
-    ilist[ilist_p] = i;
-  }
-
-  // Computes the ilist for the first element.
-  {
-    size_t i = 0;
-    size_t prec_phrase_index = (pf.pars.saP[i] == 0 ? len_P : pf.pars.saP[i]) - 1;
-    uint_t prec_phrase = pf.pars.p[prec_phrase_index];
-
-    // occs_P_BWT_P[prec_phrase].push_back(i);
-
-    size_t ilist_p = select_ilist_s(prec_phrase + 1) + occs[prec_phrase]++;
-    ilist[ilist_p] = i;
-  }
-
-  // Reducing memory tentative
-  pf.pars.lcpP.clear(); pf.pars.lcpP.shrink_to_fit();
-  pf.pars.p.clear(); pf.pars.p.shrink_to_fit();
-  occs.clear(); occs.shrink_to_fit();
-
-  verbose("Memory peak: ", malloc_count_peak());
   // Computing the thresholds
   verbose("Building the thresholds - min_s and pos_s");
-  sdsl::rmq_succinct_sct<> rmq_s_lcp_T = sdsl::rmq_succinct_sct<>(&s_lcp_T);
 
-  std::vector<size_t> min_s(1,pf.n); // Value of the minimum lcp_T in each run of BWT_T
-  std::vector<size_t> pos_s(1,0); // Position of the minimum lcp_T in each run of BWT_T
+  
+  pfp_lcp lcp(pf);
 
-  std::vector<uint8_t> heads(1,0);
-  // std::vector<size_t> lengths(1,0); //  Debug only
-
-  size_t prev_i = 0;
-  size_t prev_phrase = 0;
-  size_t prev_suffix_length = 0;
-
-  assert(pf.dict.d[pf.dict.saD[0]] == EndOfDict);
-  size_t i = 1; // This should be safe since the first entry of sa is always the dollarsign used to compute the sa
-  size_t j = 0;
-  while (i < pf.dict.saD.size()){
-
-    auto sn = pf.dict.saD[i];
-    // Check if the suffix has length at least w and is not the complete phrase.
-    auto phrase = pf.dict.daD[i] + 1; // + 1 because daD is 0-based
-    assert(phrase > 0 && phrase < pf.freq.size()); 
-    size_t suffix_length = pf.dict.select_b_d(pf.dict.rank_b_d(sn + 1) + 1) - sn - 1;
-
-    if (sn < pf.w){ // avoid the extra w # at the beginning of the text
-      i = i + 1;
-    }else if (pf.dict.b_d[sn] == 0 && suffix_length >= pf.w){
-
-      // Compute the next character of the BWT of T
-      uint8_t bwt_char = (sn == pf.w ? 0 : pf.dict.d[sn - 1]);
-      std::vector<size_t> same_suffix(1, phrase);           // Store the list of all phrase ids with the same suffix.
-      std::vector<uint8_t> bwt_chars(1, bwt_char); // the character corresponding to the phrase id
-      bool same_chars = true;
-
-      size_t next = i + 1;
-      while (next < pf.dict.saD.size() && (pf.dict.lcpD[next] >= suffix_length)){
-        auto next_sn = pf.dict.saD[next];
-        // Check if the suffix has length at least w and is not the complete phrase.
-        auto next_phrase = pf.dict.daD[next] + 1; // + 1 because daD is 0-based
-        assert(next_phrase > 0 && next_phrase < pf.freq.size());
-        size_t next_suffix_length = pf.dict.select_b_d(pf.dict.rank_b_d(next_sn + 1) + 1) - next_sn - 1;
-
-        assert(next_suffix_length >= suffix_length);
-        assert((pf.dict.b_d[next_sn] == 0 && next_suffix_length >= pf.w) || (next_suffix_length != suffix_length));
-        if (next_suffix_length == suffix_length){
-          same_suffix.push_back(next_phrase);
-          bwt_char = (next_sn == pf.w ? 0 : pf.dict.d[next_sn - 1]);
-          same_chars = (same_chars && bwt_chars.back() == bwt_char);
-          bwt_chars.push_back( bwt_char );
-        }
-
-        next = next + 1;
-      }
-
-
-      // Simple case
-      if(same_chars){
-        
-        for( auto phrase: same_suffix){
-
-          int_t lcp_suffix = 0;
-
-          if (j > 0)
-          {
-            // Compute phrase boundary lcp
-            lcp_suffix = pf.dict.lcpD[i];
-            for (size_t k = prev_i + 1; k < i; ++k)
-            {
-              lcp_suffix = std::min(lcp_suffix, pf.dict.lcpD[k]);
-            }
-
-            if (lcp_suffix >= suffix_length && suffix_length == prev_suffix_length)
-            {
-              // Compute the minimum s_lcpP of the phrases following the two phrases
-              // // we take the first occurrence of the phrase in BWT_P
-              // size_t left = occs_P_BWT_P[phrase][0]; //size_t left = first_P_BWT_P[phrase];
-              // // and the last occurrence of the previous phrase in BWT_P
-              // size_t right = occs_P_BWT_P[prev_phrase].back(); //last_P_BWT_P[prev_phrase];
-              // we take the first occurrence of the phrase in BWT_P
-              size_t left = ilist[select_ilist_s(phrase + 1)]; //size_t left = first_P_BWT_P[phrase];
-              // and the last occurrence of the previous phrase in BWT_P
-              size_t right = ilist[select_ilist_s(prev_phrase + 2) - 1]; //last_P_BWT_P[prev_phrase];
-              // assume left < right
-              if (left > right)
-                std::swap(left, right);
-
-              assert(s_lcp_T[rmq_s_lcp_T(left + 1, right)] >= pf.w);
-
-              lcp_suffix += s_lcp_T[rmq_s_lcp_T(left + 1, right)] - pf.w;
-            }
-          }
-
-          // Update min_s
-          if (lcp_suffix < min_s.back())
-          {
-            min_s.back() = lcp_suffix;
-            pos_s.back() = j;
-          }
-
-          auto next_BWT_char = bwt_chars[0];
-
-          if (heads.back() != next_BWT_char)
-          {
-            heads.push_back(next_BWT_char);
-            // lengths.push_back(0); // Debug only
-            // Create the new min
-            // min_s.push_back(INT64_MAX);
-            // pos_s.push_back(0);
-            min_s.push_back(lcp_suffix);
-            pos_s.push_back(j);
-          }
-
-          // lengths.back() += pf.freq[phrase]; // Debug only
-
-          // get min_s_P using rmq_s_lcp_T
-          size_t left = select_ilist_s(phrase+1);
-          size_t right = select_ilist_s(phrase+2)-1;
-          if (left < right && lcp_suffix >= suffix_length)
-          {
-            size_t pos_s_P = rmq_s_lcp_T(left + 1, right);
-            size_t min_s_P = s_lcp_T[pos_s_P] + suffix_length - pf.dict.length_of_phrase(phrase);
-            if(min_s.back()>min_s_P){
-              min_s.back() = min_s_P;
-              pos_s.back() = j + pos_s_P - left;
-            }
-          }
-
-          // assert(suffix_length + min_s_P[phrase-1] == _min_s_P);
-
-          // Update current min
-          // if (lcp_suffix >= suffix_length && min_s.back() > suffix_length + min_s_P[phrase])
-          // {
-          //   min_s.back() = min_s_P[phrase] + suffix_length;
-          //   pos_s.back() = j + pos_s_P[phrase];
-          // }
-
-          // Update prevs
-          prev_i = i;
-          prev_phrase = phrase;
-          prev_suffix_length = suffix_length;
-
-          j += pf.freq[phrase];
-          i += 1;
-        }
-      }else{
-        // Hard case
-        int_t lcp_suffix = 0;
-
-        if (j > 0)
-        {
-          // Compute phrase boundary lcp
-          lcp_suffix = pf.dict.lcpD[i];
-          for (size_t k = prev_i + 1; k < i; ++k)
-          {
-            lcp_suffix = std::min(lcp_suffix, pf.dict.lcpD[k]);
-          }
-
-          if (lcp_suffix >= suffix_length && suffix_length == prev_suffix_length)
-          {
-            // Compute the minimum s_lcpP of the phrases following the two phrases
-            // // we take the first occurrence of the phrase in BWT_P
-            // size_t left = occs_P_BWT_P[phrase][0]; //size_t left = first_P_BWT_P[phrase];
-            // // and the last occurrence of the previous phrase in BWT_P
-            // size_t right = occs_P_BWT_P[prev_phrase].back(); //last_P_BWT_P[prev_phrase];
-            // we take the first occurrence of the phrase in BWT_P
-            size_t left = ilist[select_ilist_s(phrase + 1)]; //size_t left = first_P_BWT_P[phrase];
-            // and the last occurrence of the previous phrase in BWT_P
-            size_t right = ilist[select_ilist_s(prev_phrase + 2) - 1]; //last_P_BWT_P[prev_phrase];
-            // assume left < right
-            if (left > right)
-              std::swap(left, right);
-
-            assert(s_lcp_T[rmq_s_lcp_T(left + 1, right)] >= pf.w);
-
-            lcp_suffix += s_lcp_T[rmq_s_lcp_T(left + 1, right)] - pf.w;
-          }
-        }
-
-        typedef std::pair < int_t*, std::pair<int_t*, uint8_t> > pq_t;
-
-        // using lambda to compare elements.
-        auto cmp = [](const pq_t &lhs, const pq_t &rhs) {
-          return *lhs.first > *rhs.first;
-        };
-
-        std::priority_queue<pq_t, std::vector<pq_t>, decltype(cmp)> pq(cmp);
-        for(size_t k = 0; k < same_suffix.size(); ++k){
-          auto phrase = same_suffix[k];
-          size_t begin = select_ilist_s(phrase + 1);
-          size_t end = select_ilist_s(phrase + 2);
-          pq.push({&ilist[begin], {&ilist[end],bwt_chars[k]}});
-        }
-        // typedef std::pair < std::vector<uint_t>::iterator, std::pair<std::vector<uint_t>::iterator, uint8_t> > pq_t;
-
-        // // using lambda to compare elements.
-        // auto cmp = [](const pq_t &lhs, const pq_t &rhs) {
-        //   return *lhs.first > *rhs.first;
-        // };
-
-        // std::priority_queue<pq_t, std::vector<pq_t>, decltype(cmp)> pq(cmp);
-        // for(size_t k = 0; k < same_suffix.size(); ++k){
-        //   auto phrase = same_suffix[k];
-        //   pq.push({occs_P_BWT_P[phrase].begin(), {occs_P_BWT_P[phrase].end(),bwt_chars[k]}});
-        // }
-
-        size_t prev_occ;
-        bool first = true;
-        while(!pq.empty()){
-          auto curr = pq.top(); pq.pop();
-
-          if(!first){
-            // Compute the minimum s_lcpP of the phrases following the two phrases
-            // we take the current occurrence of the phrase in BWT_P
-            size_t left = *curr.first;
-            // and the previous occurrence of the previous phrase in BWT_P
-            size_t right = prev_occ;
-            // assume left < right
-            if (left > right)
-              std::swap(left, right);
-
-            assert(s_lcp_T[rmq_s_lcp_T(left + 1, right)] >= pf.w);
-
-            lcp_suffix = suffix_length + s_lcp_T[rmq_s_lcp_T(left + 1, right)] - pf.w;       
-          }
-          first = false;
-          // Update min_s
-          if (lcp_suffix < min_s.back())
-          {
-            min_s.back() = lcp_suffix;
-            pos_s.back() = j;
-          }
-
-          auto next_BWT_char = curr.second.second;
-
-          if (heads.back() != next_BWT_char)
-          {
-            heads.push_back(next_BWT_char);
-            // lengths.push_back(0); // Debug only
-            // Create the new min
-            // min_s.push_back(INT64_MAX);
-            // pos_s.push_back(0);
-            min_s.push_back(lcp_suffix);
-            pos_s.push_back(j);
-          }
-
-          // lengths.back()++; // Debug only
-
-          // Update prevs
-          prev_occ = *curr.first;
-
-          // Update pq
-          curr.first ++;
-          if(curr.first != curr.second.first)
-            pq.push(curr);
-
-          j += 1;
-        }
-
-        i = next;
-        prev_i = i - 1;
-        prev_phrase = same_suffix.back();
-        prev_suffix_length = suffix_length;
-      }
-      i = next;
-      assert(i==next);
-    } else {
-      i = i+1;
-    }
-
-  }
+  
   verbose("Memory peak: ", malloc_count_peak());
   verbose("Building the thresholds - constructing thresholds");
 
@@ -467,22 +104,24 @@ int main(int argc, char* const argv[]) {
   std::vector<uint64_t> last_seen(256, 0);
   std::vector<bool> never_seen(256, true);
 
-  sdsl::rmq_succinct_sct<> rmq_min_s = sdsl::rmq_succinct_sct<>(&min_s);
+  sdsl::rmq_succinct_sct<> rmq_min_s = sdsl::rmq_succinct_sct<>(&lcp.min_s);
 
-
-  for(size_t i = 1; i < heads.size(); ++i){
-    if(never_seen[heads[i]]){
-      never_seen[heads[i]] = false;
-    }else{
-      size_t j = rmq_min_s(last_seen[heads[i]]+1, i-1);
-      if (fwrite(&min_s[j], THRBYTES, 1, thr_file) != 1)
+  for(size_t i = 1; i < lcp.heads.size(); ++i){
+    if (never_seen[lcp.heads[i]])
+    {
+      never_seen[lcp.heads[i]] = false;
+    }
+    else
+    {
+      size_t j = rmq_min_s(last_seen[lcp.heads[i]] + 1, i - 1);
+      if (fwrite(&lcp.min_s[j], THRBYTES, 1, thr_file) != 1)
         error("SA write error 1");
-      if (fwrite(&pos_s[j], THRBYTES, 1, thr_pos_file) != 1)
+      if (fwrite(&lcp.pos_s[j], THRBYTES, 1, thr_pos_file) != 1)
         error("SA write error 1");
       // thresholds.push_back(min_s[j]);
       // thresholds_pos_s.push_back(pos_s[j]);
     }
-    last_seen[heads[i]] = i;
+    last_seen[lcp.heads[i]] = i;
   }
 
   // Close output files
