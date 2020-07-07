@@ -39,8 +39,6 @@ public:
   std::vector<uint32_t> p;
   std::vector<uint_t> saP;
   std::vector<uint_t> isaP;
-  std::vector<int_t> lcpP;
-  // sdsl::rmq_succinct_sct<> rmq_lcp_P;
 
   std::vector<int_t> ilist; // Inverted list of phrases of P in BWT_P
   sdsl::bit_vector ilist_s; // The ith 1 is in correspondence of the first occurrence of the ith phrase
@@ -113,21 +111,6 @@ public:
       }
     );
 
-    lcpP.resize(p.size());
-    // LCP array of the parsing.
-    verbose("Computing LCP of the parsing");
-    _elapsed_time(
-      LCP_array(&p[0], isaP, saP, p.size(), lcpP);
-    );
-
-
-
-    // verbose("Computing RMQ over LCP of the parsing");
-    // // Compute the LCP rank of P
-    // _elapsed_time(
-    //   rmq_lcp_P = sdsl::rmq_succinct_sct<>(&lcpP);
-    // );
-
 
   }
 
@@ -186,8 +169,9 @@ public:
     written_bytes += my_serialize(p, out, child, "parse");
     written_bytes += my_serialize(saP, out, child, "saP");
     written_bytes += my_serialize(isaP, out, child, "isaP");
-    written_bytes += my_serialize(lcpP, out, child, "lcpP");
-    // written_bytes += rmq_lcp_P.serialize(out, child, "rmq_lcp_P");
+    written_bytes += my_serialize(ilist, out, child, "ilist");
+    written_bytes += ilist_s.serialize(out, child, "ilist_s");
+    written_bytes += select_ilist_s.serialize(out, child, "select_ilist_s");
     written_bytes += sdsl::write_member(alphabet_size, out, child, "alphabet_size");
     
 
@@ -201,8 +185,9 @@ public:
     my_load(p, in);
     my_load(saP, in);
     my_load(isaP, in);
-    my_load(lcpP, in);
-    // rmq_lcp_P.load(in);
+    my_load(ilist, in);
+    ilist_s.load(in);
+    select_ilist_s.load(in);
     sdsl::read_member(alphabet_size, in);
   }
 

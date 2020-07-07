@@ -42,21 +42,20 @@ public:
   
   dictionary dict;
   parse pars;
-  std::vector<uint_t> freq;
+  // std::vector<uint_t> freq;
   size_t n; // Size of the text
   size_t w; // Size of the window
 
   std::vector<size_t> s_lcp_T; // LCP array of T sampled in corrispondence of the beginning of each phrase.
-  std::vector<size_t> s_lcp_T_; // LCP array of T sampled in corrispondence of the beginning of each phrase.
   sdsl::rmq_succinct_sct<> rmq_s_lcp_T;
   
-  std::vector<int_t>  ilist;            // Inverted list of phrases of P in BWT_P
-  sdsl::bit_vector ilist_s; // The ith 1 is in correspondence of the first occurrence of the ith phrase
-  sdsl::bit_vector::select_1_type select_ilist_s;
+  // std::vector<int_t>  ilist;            // Inverted list of phrases of P in BWT_P
+  // sdsl::bit_vector ilist_s; // The ith 1 is in correspondence of the first occurrence of the ith phrase
+  // sdsl::bit_vector::select_1_type select_ilist_s;
 
-  sdsl::bit_vector b_p;
-  sdsl::bit_vector::rank_1_type rank_b_p;
-  sdsl::bit_vector::select_1_type select_b_p;
+  // sdsl::bit_vector b_p;
+  // sdsl::bit_vector::rank_1_type rank_b_p;
+  // sdsl::bit_vector::select_1_type select_b_p;
 
   typedef size_t size_type;
 
@@ -69,17 +68,17 @@ public:
              size_t w_) : 
             dict(d_, w_),
             pars(p_, dict.n_phrases() + 1),
-            freq(freq_),
+            // freq(freq_),
             s_lcp_T(1,0),
-            ilist(pars.p.size()),
-            ilist_s(pars.p.size()+ 1, 0),
+            // ilist(pars.p.size()),
+            // ilist_s(pars.p.size()+ 1, 0),
             w(w_)
   {
     // Compute the length of the string;
     compute_n();
 
-    verbose("Computing b_p");
-    _elapsed_time(compute_b_p());
+    // verbose("Computing b_p");
+    // _elapsed_time(compute_b_p());
 
     // Clear unnecessary elements
     clear_unnecessary_elements();
@@ -88,72 +87,19 @@ public:
   pf_parsing( std::string filename, size_t w_):
               dict(filename, w_),
               pars(filename,dict.n_phrases()+1),
-              freq(),
+              // freq(),
               s_lcp_T(1,0),
-              ilist(pars.p.size()),
-              ilist_s(pars.p.size()+ 1, 0),
+              // ilist(pars.p.size()),
+              // ilist_s(pars.p.size()+ 1, 0),
               w(w_)
   {
-    // Uploading the frequency file
-    std::string tmp_filename = filename + std::string(".occ");
-    read_file(tmp_filename.c_str(), freq);
-    freq.insert(freq.begin(), 1);
 
     // Compute the length of the string;
     compute_n();
 
-    // b_p(pfp.n,0);
-    verbose("Computing b_p");
-    _elapsed_time(compute_b_p());
-
-    verbose("Computing s_lcp_T and ilist");
-    _elapsed_time(compute_s_lcp_T_and_ilist());
-
-    verbose("Computing s_lcp_T_");
+    verbose("Computing s_lcp_T");
     _elapsed_time(compute_s_lcp_T());
 
-    if(s_lcp_T.size() != s_lcp_T_.size())
-      error("s_lcp_Ts are different");
-    for(size_t i = 0; i<s_lcp_T.size();++i)
-      if(s_lcp_T[i] != s_lcp_T_[i])
-        error("s_lcp_Ts are different");
-
-    if(ilist.size() != pars.ilist.size())
-      error("ilists are different");
-    for(size_t i = 0; i<ilist.size();++i)
-      if(ilist[i] != pars.ilist[i])
-        error("s_lcp_Ts are different");
-
-    verbose("Parse");
-    verbose("Size of pars.p: ", pars.p.size()*sizeof(pars.p[0]));
-    verbose("Size of pars.saP: ", pars.saP.size()*sizeof(pars.saP[0]));
-    verbose("Size of pars.isaP: ", pars.isaP.size()*sizeof(pars.isaP[0]));
-    verbose("Size of pars.lcpP: ", pars.lcpP.size()*sizeof(pars.lcpP[0]));
-
-    verbose("Dictionary");
-    verbose("Size of dict.d: ", dict.d.size()*sizeof(dict.d[0]));
-    verbose("Size of dict.saD: ", dict.saD.size()*sizeof(dict.saD[0]));
-    verbose("Size of dict.isaD: ", dict.isaD.size()*sizeof(dict.isaD[0]));
-    verbose("Size of dict.lcpD: ", dict.lcpD.size()*sizeof(dict.lcpD[0]));
-    verbose("Size of dict.rmq_lcp_D: ", sdsl::size_in_bytes(dict.rmq_lcp_D));
-    
-    verbose("Size of dict.b_d: ", sdsl::size_in_bytes(dict.b_d));
-    verbose("Size of dict.rank_b_d: ", sdsl::size_in_bytes(dict.rank_b_d));
-    verbose("Size of dict.select_b_d: ", sdsl::size_in_bytes(dict.select_b_d));
-
-    verbose("PFP");
-    verbose("Size of freq: ", freq.size()*sizeof(freq[0]));
-
-    verbose("Size of s_lcp_T: ", s_lcp_T.size()*sizeof(s_lcp_T[0]));
-    verbose("Size of rmq_s_lcp_T: ", sdsl::size_in_bytes(rmq_s_lcp_T));
-
-    verbose("Size of ilist: ", ilist.size()*sizeof(ilist[0]));
-    verbose("Size of ilist_s: ", sdsl::size_in_bytes(ilist_s));
-    verbose("Size of select_ilist_s: ", sdsl::size_in_bytes(select_ilist_s));
-    
-    verbose("Size of b_p: ", sdsl::size_in_bytes(b_p));
-    verbose("Size of rank_b_p: ", sdsl::size_in_bytes(rank_b_p));
-    verbose("Size of select_b_p: ", sdsl::size_in_bytes(select_b_p));
 
 
 
@@ -161,26 +107,33 @@ public:
     clear_unnecessary_elements();
   }
 
-  void compute_b_p() {
-    // Build the bitvector storing the position of the beginning of each phrase.
-    b_p.resize(this->n); // all should be initialized at false by sdsl
-    for(size_t i = 0; i < b_p.size(); ++i)
-      b_p[i] = false; // bug in resize
-    b_p[0] = true; // phrase_0 becomes phrase 1
-    
-    size_t i = 0;
-    
-    for(int j = 0; j < pars.p.size()-2; ++j){ // -2 because the beginning of the last phrase is in position 0
-      // p[i]: phrase_id
-      assert(pars.p[j] != 0);
-      // phrase_length: select_b_d(p[i]+1)-select_b_d(p[i]);
-      i += dict.length_of_phrase(pars.p[j]) - w;
-      b_p[i] = true;
-    }
+  void print_sizes()
+  {
 
-    // Build rank and select on Sp
-    rank_b_p = sdsl::bit_vector::rank_1_type(&b_p);
-    select_b_p = sdsl::bit_vector::select_1_type(&b_p);
+    verbose("Parse");
+    verbose("Size of pars.p: ", pars.p.size() * sizeof(pars.p[0]));
+    verbose("Size of pars.saP: ", pars.saP.size() * sizeof(pars.saP[0]));
+    verbose("Size of pars.isaP: ", pars.isaP.size() * sizeof(pars.isaP[0]));
+
+    verbose("Size of pars.ilist: ", pars.ilist.size() * sizeof(pars.ilist[0]));
+    verbose("Size of pars.ilist_s: ", sdsl::size_in_bytes(pars.ilist_s));
+    verbose("Size of pars.select_ilist_s: ", sdsl::size_in_bytes(pars.select_ilist_s));
+
+    verbose("Dictionary");
+    verbose("Size of dict.d: ", dict.d.size() * sizeof(dict.d[0]));
+    verbose("Size of dict.saD: ", dict.saD.size() * sizeof(dict.saD[0]));
+    verbose("Size of dict.isaD: ", dict.isaD.size() * sizeof(dict.isaD[0]));
+    verbose("Size of dict.lcpD: ", dict.lcpD.size() * sizeof(dict.lcpD[0]));
+    verbose("Size of dict.rmq_lcp_D: ", sdsl::size_in_bytes(dict.rmq_lcp_D));
+
+    verbose("Size of dict.b_d: ", sdsl::size_in_bytes(dict.b_d));
+    verbose("Size of dict.rank_b_d: ", sdsl::size_in_bytes(dict.rank_b_d));
+    verbose("Size of dict.select_b_d: ", sdsl::size_in_bytes(dict.select_b_d));
+
+    verbose("PFP");
+    verbose("Size of s_lcp_T: ", s_lcp_T.size() * sizeof(s_lcp_T[0]));
+    verbose("Size of rmq_s_lcp_T: ", sdsl::size_in_bytes(rmq_s_lcp_T));
+
   }
 
   void compute_n(){
@@ -199,14 +152,15 @@ public:
   // Return the frequency of the phrase
   size_t get_freq(size_t phrase)
   {
-    return select_ilist_s(phrase + 2) - select_ilist_s(phrase + 1);
+    return pars.select_ilist_s(phrase + 2) - pars.select_ilist_s(phrase + 1);
+    // return select_ilist_s(phrase + 2) - select_ilist_s(phrase + 1);
   }
 
   // Customized Kasai et al.
   void compute_s_lcp_T()
   {
     size_t n = pars.saP.size();
-    s_lcp_T_.resize(n, 0);
+    s_lcp_T.resize(n, 0);
 
     size_t l = 0;
     size_t lt = 0;
@@ -226,7 +180,7 @@ public:
         size_t lcpp = dict.longest_common_phrase_prefix(pars.p[i + l], pars.p[j + l]);
 
         // l stores the length of the longest common prefix between the i-th suffix and the j-th suffix
-        s_lcp_T_[k] = lt + lcpp;
+        s_lcp_T[k] = lt + lcpp;
         if (l > 0)
         {
           l--;
@@ -234,82 +188,6 @@ public:
         }
 
       }
-    }
-  }
-
-
-  void compute_s_lcp_T_and_ilist()
-  {
-    size_t n_phrases = dict.n_phrases();
-    size_t len_P = pars.p.size();
-
-
-    // Check if it is worth to compute it here or read it from file, pushing the computation one step further in the pipeline.
-
-    {
-      size_t j = 0;
-      ilist_s[j++] = 1; // this is equivalent to set pf.freq[0]=1;
-      ilist_s[j] = 1;
-      for (size_t i = 1; i < freq.size(); ++i)
-      {
-        j += freq[i];
-        ilist_s[j] = 1;
-        freq[i] = 0;
-      }
-    }
-
-    select_ilist_s = sdsl::bit_vector::select_1_type(&ilist_s);
-
-    size_t last_begin = 0;
-    // For all elements of lcpP, compute the corresponding LCP value in T
-    for (size_t i = 1; i < len_P; ++i)
-    {
-      size_t s_i = select_b_p(pars.saP[i] + 1);
-      size_t e_i = select_b_p(pars.saP[i] + pars.lcpP[i] + 1);
-
-      size_t l_com_phrases = e_i - s_i;
-
-      assert(pars.lcpP[i] > 0 || l_com_phrases == 0);
-
-      uint_t a = pars.p[pars.saP[i] + pars.lcpP[i]];
-      uint_t b = pars.p[pars.saP[i - 1] + pars.lcpP[i]];
-
-      if (a == 0 || b == 0)
-      { // we are comparing a phrase with the termination character of P that is not a phrase.
-        s_lcp_T.push_back(0);
-      }
-      else
-      {
-        // Compute the lcp between phrases a and b
-        auto a_in_sa = dict.isaD[dict.select_b_d(a)]; // position of the phrase a in saD
-        auto b_in_sa = dict.isaD[dict.select_b_d(b)]; // position of the phrase b in saD
-
-        auto lcp_left = std::min(a_in_sa, b_in_sa) + 1;
-        auto lcp_right = max(a_in_sa, b_in_sa);
-
-        size_t lcp_a_b_i = dict.rmq_lcp_D(lcp_left, lcp_right);
-        auto lcp_a_b = dict.lcpD[lcp_a_b_i];
-
-        s_lcp_T.push_back(l_com_phrases + lcp_a_b);
-      }
-
-
-      // Update first and last occurrence of each phrase in BWT_P
-      size_t prec_phrase_index = (pars.saP[i] == 0 ? len_P : pars.saP[i]) - 1;
-      uint_t prec_phrase = pars.p[prec_phrase_index];
-
-      size_t ilist_p = select_ilist_s(prec_phrase + 1) + freq[prec_phrase]++;
-      ilist[ilist_p] = i;
-    }
-
-    // Computes the ilist for the first element.
-    {
-      size_t i = 0;
-      size_t prec_phrase_index = (pars.saP[i] == 0 ? len_P : pars.saP[i]) - 1;
-      uint_t prec_phrase = pars.p[prec_phrase_index];
-
-      size_t ilist_p = select_ilist_s(prec_phrase + 1) + freq[prec_phrase]++;
-      ilist[ilist_p] = i;
     }
 
     rmq_s_lcp_T = sdsl::rmq_succinct_sct<>(&s_lcp_T);
@@ -320,14 +198,9 @@ public:
     pars.isaP.clear(); 
     pars.isaP.shrink_to_fit();
     
-    pars.lcpP.clear();
-    pars.lcpP.shrink_to_fit();
-    
     pars.p.clear();
     pars.p.shrink_to_fit();
     
-    freq.clear();
-    freq.shrink_to_fit();
   }
 
   // Serialize to a stream.
@@ -338,12 +211,10 @@ public:
 
     written_bytes += dict.serialize(out, child, "dictionary");
     written_bytes += pars.serialize(out, child, "parse");
-    // written_bytes += my_serialize(freq, out, child, "frequencies");
+    written_bytes += my_serialize(s_lcp_T, out, child, "s_lcp_T");
+    written_bytes += rmq_s_lcp_T.serialize(out, child, "rmq_s_lcp_T");
     written_bytes += sdsl::write_member(n, out, child, "n");
     written_bytes += sdsl::write_member(w, out, child, "w");
-    written_bytes += b_p.serialize(out, child, "b_p");
-    written_bytes += rank_b_p.serialize(out, child, "rank_b_p");
-    written_bytes += select_b_p.serialize(out, child, "select_b_p");
 
     sdsl::structure_tree::add_size(child, written_bytes);
     return written_bytes;
@@ -354,12 +225,10 @@ public:
   {
     dict.load(in);
     pars.load(in);
-    // my_load(freq, in);
+    my_load(s_lcp_T, in);
+    rmq_s_lcp_T.load(in);
     sdsl::read_member(n, in);
     sdsl::read_member(w, in);
-    b_p.load(in);
-    rank_b_p.load(in, &b_p);
-    select_b_p.load(in, &b_p);
   }
 
   std::string filesuffix() const

@@ -110,8 +110,8 @@ public:
                         update_min_s(lcp_suffix,j);
 
                         // get min_s_P using rmq_s_lcp_T
-                        size_t left = pf.select_ilist_s(curr.phrase + 1);
-                        size_t right = pf.select_ilist_s(curr.phrase + 2) - 1;
+                        size_t left = pf.pars.select_ilist_s(curr.phrase + 1);
+                        size_t right = pf.pars.select_ilist_s(curr.phrase + 2) - 1;
                         if (left < right && lcp_suffix >= curr.suffix_length)
                         {
                             size_t pos_s_P = pf.rmq_s_lcp_T(left + 1, right);
@@ -141,9 +141,9 @@ public:
                     std::priority_queue<pq_t, std::vector<pq_t>, decltype(cmp)> pq(cmp);
                     for (auto s: same_suffix)
                     {
-                        size_t begin = pf.select_ilist_s(s.phrase + 1);
-                        size_t end = pf.select_ilist_s(s.phrase + 2);
-                        pq.push({&pf.ilist[begin], {&pf.ilist[end], s.bwt_char}});
+                        size_t begin = pf.pars.select_ilist_s(s.phrase + 1);
+                        size_t end = pf.pars.select_ilist_s(s.phrase + 2);
+                        pq.push({&pf.pars.ilist[begin], {&pf.pars.ilist[end], s.bwt_char}});
                     }
 
                     size_t prev_occ;
@@ -220,7 +220,7 @@ private:
         s.sn = pf.dict.saD[s.i];
         s.phrase = pf.dict.rank_b_d(s.sn); 
         // s.phrase = pf.dict.daD[s.i] + 1; // + 1 because daD is 0-based
-        assert(!is_valid(s) || (s.phrase > 0 && s.phrase < pf.ilist.size()));
+        assert(!is_valid(s) || (s.phrase > 0 && s.phrase < pf.pars.ilist.size()));
         s.suffix_length = pf.dict.select_b_d(pf.dict.rank_b_d(s.sn + 1) + 1) - s.sn - 1;
         if(is_valid(s))
             s.bwt_char = (s.sn == pf.w ? 0 : pf.dict.d[s.sn - 1]);
@@ -267,9 +267,9 @@ private:
             {
                 // Compute the minimum s_lcpP of the phrases following the two phrases
                 // we take the first occurrence of the phrase in BWT_P
-                size_t left = pf.ilist[pf.select_ilist_s(curr.phrase + 1)]; //size_t left = first_P_BWT_P[phrase];
+                size_t left = pf.pars.ilist[pf.pars.select_ilist_s(curr.phrase + 1)]; //size_t left = first_P_BWT_P[phrase];
                 // and the last occurrence of the previous phrase in BWT_P
-                size_t right = pf.ilist[pf.select_ilist_s(prev.phrase + 2) - 1]; //last_P_BWT_P[prev_phrase];
+                size_t right = pf.pars.ilist[pf.pars.select_ilist_s(prev.phrase + 2) - 1]; //last_P_BWT_P[prev_phrase];
                 
                 lcp_suffix += min_s_lcp_T(left,right);
             }
