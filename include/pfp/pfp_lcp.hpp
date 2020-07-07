@@ -195,8 +195,9 @@ private:
         if (s.i >= pf.dict.saD.size())
             return false;
         s.sn = pf.dict.saD[s.i];
-        s.phrase = pf.dict.daD[s.i] + 1; // + 1 because daD is 0-based
-        assert(s.phrase > 0 && s.phrase < pf.ilist.size());
+        s.phrase = pf.dict.rank_b_d(s.sn);
+        // s.phrase = pf.dict.daD[s.i] + 1; // + 1 because daD is 0-based
+        assert(!is_valid(s) || (s.phrase > 0 && s.phrase < pf.ilist.size()));
         s.suffix_length = pf.dict.select_b_d(pf.dict.rank_b_d(s.sn + 1) + 1) - s.sn - 1;
         if(is_valid(s))
             s.bwt_char = (s.sn == pf.w ? 0 : pf.dict.d[s.sn - 1]);

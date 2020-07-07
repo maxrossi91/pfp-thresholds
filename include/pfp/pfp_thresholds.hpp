@@ -218,8 +218,9 @@ private:
         if (s.i >= pf.dict.saD.size())
             return false;
         s.sn = pf.dict.saD[s.i];
-        s.phrase = pf.dict.daD[s.i] + 1; // + 1 because daD is 0-based
-        assert(s.phrase > 0 && s.phrase < pf.ilist.size());
+        s.phrase = pf.dict.rank_b_d(s.sn); 
+        // s.phrase = pf.dict.daD[s.i] + 1; // + 1 because daD is 0-based
+        assert(!is_valid(s) || (s.phrase > 0 && s.phrase < pf.ilist.size()));
         s.suffix_length = pf.dict.select_b_d(pf.dict.rank_b_d(s.sn + 1) + 1) - s.sn - 1;
         if(is_valid(s))
             s.bwt_char = (s.sn == pf.w ? 0 : pf.dict.d[s.sn - 1]);
@@ -313,13 +314,13 @@ private:
     inline void print_threshold(uint8_t next_char){
 
         // Update thresholds
-        for (size_t i = 0; i < 256; ++i)
+        for (auto character: pf.dict.alphabet)
         {
-            if(i == head) continue;
-            if (min_s < thresholds[i])
+            if (character == head) continue;
+            if (min_s < thresholds[character])
             {
-                thresholds[i] = min_s;
-                thresholds_pos[i] = pos_s;
+                thresholds[character] = min_s;
+                thresholds_pos[character] = pos_s;
             }
         }
 

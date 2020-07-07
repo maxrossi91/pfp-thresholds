@@ -42,12 +42,14 @@ public:
   std::vector<uint8_t> d;
   std::vector<uint_t> saD;
   std::vector<uint_t> isaD;
-  std::vector<int_da> daD;
+  // std::vector<int_da> daD;
   std::vector<int_t> lcpD;
   sdsl::rmq_succinct_sct<> rmq_lcp_D;
   sdsl::bit_vector b_d; // Starting position of each phrase in D
   sdsl::bit_vector::rank_1_type rank_b_d;
   sdsl::bit_vector::select_1_type select_b_d;
+
+  std::vector<uint8_t> alphabet;
 
   typedef size_t size_type;
 
@@ -91,7 +93,34 @@ public:
     return rank_b_d(d.size()-1);
   }
 
+  size_t longest_common_phrase_prefix(size_t a, size_t b)
+  {
+    if(a == 0 || b == 0)
+      return 0;
+    // Compute the lcp between phrases a and b
+    auto a_in_sa = isaD[select_b_d(a)]; // position of the phrase a in saD
+    auto b_in_sa = isaD[select_b_d(b)]; // position of the phrase b in saD
+
+    auto lcp_left = std::min(a_in_sa, b_in_sa) + 1;
+    auto lcp_right = max(a_in_sa, b_in_sa);
+
+    size_t lcp_a_b_i = rmq_lcp_D(lcp_left, lcp_right);
+    return lcpD[lcp_a_b_i];
+
+  }
+
   void build(){
+
+    // Constructing the alphabet
+    std::vector<bool> visit(256,false);
+    for(auto elem: d)
+    {
+      if(!visit[elem])
+      {
+        visit[elem] = true;
+        alphabet.push_back(elem);
+      }
+    }
 
     // Building the bitvector with a 1 in each starting position of each phrase in D
     b_d.resize(d.size());
@@ -106,11 +135,12 @@ public:
 
     saD.resize(d.size());
     lcpD.resize(d.size());
-    daD.resize(d.size());
+    // daD.resize(d.size());
     // suffix array, LCP array, and Document array of the dictionary.
     verbose("Computing SA, LCP, and DA of dictionary");
     _elapsed_time(
-      gsacak(&d[0], &saD[0], &lcpD[0], &daD[0], d.size())
+      gsacak(&d[0], &saD[0], &lcpD[0], nullptr, d.size())
+      // gsacak(&d[0], &saD[0], &lcpD[0], &daD[0], d.size())
     );
 
     // inverse suffix array of the dictionary.
@@ -145,7 +175,7 @@ public:
     written_bytes += my_serialize(d, out, child, "dictionary");
     written_bytes += my_serialize(saD, out, child, "saD");
     written_bytes += my_serialize(isaD, out, child, "isaD");
-    written_bytes += my_serialize(daD, out, child, "daD");
+    // written_bytes += my_serialize(daD, out, child, "daD");
     written_bytes += my_serialize(lcpD, out, child, "lcpD");
     written_bytes += rmq_lcp_D.serialize(out, child, "rmq_lcp_D");
     written_bytes += b_d.serialize(out, child, "b_d");
@@ -162,7 +192,7 @@ public:
     my_load(d, in);
     my_load(saD, in);
     my_load(isaD, in);
-    my_load(daD, in);
+    // my_load(daD, in);
     my_load(lcpD, in);
     rmq_lcp_D.load(in);
     b_d.load(in);

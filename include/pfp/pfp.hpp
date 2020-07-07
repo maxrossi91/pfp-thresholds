@@ -29,6 +29,7 @@
 
 #include <sdsl/rmq_support.hpp>
 #include <sdsl/int_vector.hpp>
+#include <sdsl/io.hpp>
 extern "C" {
     #include<gsacak.h>
 }
@@ -46,6 +47,7 @@ public:
   size_t w; // Size of the window
 
   std::vector<size_t> s_lcp_T; // LCP array of T sampled in corrispondence of the beginning of each phrase.
+  std::vector<size_t> s_lcp_T_; // LCP array of T sampled in corrispondence of the beginning of each phrase.
   sdsl::rmq_succinct_sct<> rmq_s_lcp_T;
   
   std::vector<int_t>  ilist;            // Inverted list of phrases of P in BWT_P
@@ -107,6 +109,54 @@ public:
     verbose("Computing s_lcp_T and ilist");
     _elapsed_time(compute_s_lcp_T_and_ilist());
 
+    verbose("Computing s_lcp_T_");
+    _elapsed_time(compute_s_lcp_T());
+
+    if(s_lcp_T.size() != s_lcp_T_.size())
+      error("s_lcp_Ts are different");
+    for(size_t i = 0; i<s_lcp_T.size();++i)
+      if(s_lcp_T[i] != s_lcp_T_[i])
+        error("s_lcp_Ts are different");
+
+    if(ilist.size() != pars.ilist.size())
+      error("ilists are different");
+    for(size_t i = 0; i<ilist.size();++i)
+      if(ilist[i] != pars.ilist[i])
+        error("s_lcp_Ts are different");
+
+    verbose("Parse");
+    verbose("Size of pars.p: ", pars.p.size()*sizeof(pars.p[0]));
+    verbose("Size of pars.saP: ", pars.saP.size()*sizeof(pars.saP[0]));
+    verbose("Size of pars.isaP: ", pars.isaP.size()*sizeof(pars.isaP[0]));
+    verbose("Size of pars.lcpP: ", pars.lcpP.size()*sizeof(pars.lcpP[0]));
+
+    verbose("Dictionary");
+    verbose("Size of dict.d: ", dict.d.size()*sizeof(dict.d[0]));
+    verbose("Size of dict.saD: ", dict.saD.size()*sizeof(dict.saD[0]));
+    verbose("Size of dict.isaD: ", dict.isaD.size()*sizeof(dict.isaD[0]));
+    verbose("Size of dict.lcpD: ", dict.lcpD.size()*sizeof(dict.lcpD[0]));
+    verbose("Size of dict.rmq_lcp_D: ", sdsl::size_in_bytes(dict.rmq_lcp_D));
+    
+    verbose("Size of dict.b_d: ", sdsl::size_in_bytes(dict.b_d));
+    verbose("Size of dict.rank_b_d: ", sdsl::size_in_bytes(dict.rank_b_d));
+    verbose("Size of dict.select_b_d: ", sdsl::size_in_bytes(dict.select_b_d));
+
+    verbose("PFP");
+    verbose("Size of freq: ", freq.size()*sizeof(freq[0]));
+
+    verbose("Size of s_lcp_T: ", s_lcp_T.size()*sizeof(s_lcp_T[0]));
+    verbose("Size of rmq_s_lcp_T: ", sdsl::size_in_bytes(rmq_s_lcp_T));
+
+    verbose("Size of ilist: ", ilist.size()*sizeof(ilist[0]));
+    verbose("Size of ilist_s: ", sdsl::size_in_bytes(ilist_s));
+    verbose("Size of select_ilist_s: ", sdsl::size_in_bytes(select_ilist_s));
+    
+    verbose("Size of b_p: ", sdsl::size_in_bytes(b_p));
+    verbose("Size of rank_b_p: ", sdsl::size_in_bytes(rank_b_p));
+    verbose("Size of select_b_p: ", sdsl::size_in_bytes(select_b_p));
+
+
+
     // Clear unnecessary elements
     clear_unnecessary_elements();
   }
@@ -147,11 +197,49 @@ public:
   }
 
   // Return the frequency of the phrase
-  size_t get_freq(size_t phrase){
+  size_t get_freq(size_t phrase)
+  {
     return select_ilist_s(phrase + 2) - select_ilist_s(phrase + 1);
   }
 
-  void compute_s_lcp_T_and_ilist(){
+  // Customized Kasai et al.
+  void compute_s_lcp_T()
+  {
+    size_t n = pars.saP.size();
+    s_lcp_T_.resize(n, 0);
+
+    size_t l = 0;
+    size_t lt = 0;
+    for (size_t i = 0; i < n; ++i)
+    {
+      // if i is the last character LCP is not defined
+      size_t k = pars.isaP[i];
+      if (k > 0)
+      {
+        size_t j = pars.saP[k - 1];
+        // I find the longest common prefix of the i-th suffix and the j-th suffix.
+        while (pars.p[i + l] == pars.p[j + l])
+        {
+          lt += dict.length_of_phrase(pars.p[i + l]) - w; // I remove the last w overlapping characters
+          l++;
+        }
+        size_t lcpp = dict.longest_common_phrase_prefix(pars.p[i + l], pars.p[j + l]);
+
+        // l stores the length of the longest common prefix between the i-th suffix and the j-th suffix
+        s_lcp_T_[k] = lt + lcpp;
+        if (l > 0)
+        {
+          l--;
+          lt -= dict.length_of_phrase(pars.p[i]) - w; // I have to remove the length of the first matching phrase
+        }
+
+      }
+    }
+  }
+
+
+  void compute_s_lcp_T_and_ilist()
+  {
     size_t n_phrases = dict.n_phrases();
     size_t len_P = pars.p.size();
 

@@ -62,13 +62,13 @@ int main(int argc, char* const argv[]) {
   std::chrono::high_resolution_clock::time_point t_insert_end = std::chrono::high_resolution_clock::now();
 
   verbose("PFP DS construction complete");
+  verbose("Memory peak: ", malloc_count_peak());
   verbose("Elapsed time (s): ", std::chrono::duration<double, std::ratio<1>>(t_insert_end - t_insert_start).count());
   // auto time = std::chrono::duration<double, std::ratio<1>>(t_insert_end - t_insert_start).count();
 
 
   verbose("Building the thresholds");
 
-  verbose("Memory peak: ", malloc_count_peak());
   std::chrono::high_resolution_clock::time_point t_start = std::chrono::high_resolution_clock::now();
 
   // This code gets timed

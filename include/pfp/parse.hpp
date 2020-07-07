@@ -42,6 +42,10 @@ public:
   std::vector<int_t> lcpP;
   // sdsl::rmq_succinct_sct<> rmq_lcp_P;
 
+  std::vector<int_t> ilist; // Inverted list of phrases of P in BWT_P
+  sdsl::bit_vector ilist_s; // The ith 1 is in correspondence of the first occurrence of the ith phrase
+  sdsl::bit_vector::select_1_type select_ilist_s;
+
   size_t alphabet_size;
 
   typedef size_t size_type;
@@ -55,6 +59,9 @@ public:
           alphabet_size(alphabet_size_)
   {
     assert(p.back() == 0);
+
+    compute_freq();
+
     build();
 
 
@@ -69,6 +76,11 @@ public:
     read_file(tmp_filename.c_str(), p);
     p.push_back(0); // this is the terminator for the sacak algorithm
 
+    // Uploading the frequency file
+    tmp_filename = filename + std::string(".occ");
+    read_file(tmp_filename.c_str(), freq);
+    freq.insert(freq.begin(), 1);
+
     build();
 
   }
@@ -80,6 +92,13 @@ public:
     verbose("Computing SA of the parsing");
     _elapsed_time(
       sacak_int(&p[0],&saP[0],p.size(),alphabet_size);
+    );
+
+
+    // inverted list of the parsing.
+    verbose("Computing ilist");
+    _elapsed_time(
+      compute_ilist()
     );
 
 
@@ -112,6 +131,52 @@ public:
 
   }
 
+
+  void compute_ilist()
+  {
+
+    ilist.resize(p.size(),0);
+    ilist_s = sdsl::bit_vector(p.size() + 1, 0);
+
+    // computing the bucket boundaries
+    size_t j = 0;
+    ilist_s[j++] = 1; // this is equivalent to set pf.freq[0]=1;
+    ilist_s[j] = 1;
+    for (size_t i = 1; i < freq.size(); ++i)
+    {
+      j += freq[i];
+      ilist_s[j] = 1;
+      freq[i] = 0;
+    }
+
+    select_ilist_s = sdsl::bit_vector::select_1_type(&ilist_s);
+
+
+    for(size_t i = 0; i < saP.size(); ++i)
+    {
+      size_t prec_phrase_index = (saP[i] == 0 ? p.size() : saP[i]) - 1;
+      uint_t prec_phrase = p[prec_phrase_index];
+
+      size_t ilist_p = select_ilist_s(prec_phrase + 1) + freq[prec_phrase]++;
+      ilist[ilist_p] = i;
+    }
+
+    freq.clear();
+    freq.shrink_to_fit();
+  }
+
+  void compute_freq()
+  {
+    uint32_t max_p = p[0];
+    for(size_t i = 1; i < p.size(); ++i)
+      max_p = max(max_p, p[i]);
+
+    freq.resize(max_p+1,0);
+    for(size_t i = 0; i < p.size(); ++i)
+      freq[p[i]]++;
+
+  }
+
   // Serialize to a stream.
   size_type serialize(std::ostream &out, sdsl::structure_tree_node *v = nullptr, std::string name = "") const
   {
@@ -141,6 +206,8 @@ public:
     sdsl::read_member(alphabet_size, in);
   }
 
+private:
+  std::vector<uint_t> freq;
 };
 
 #endif /* end of include guard: _PFP_PARSE_HH */
