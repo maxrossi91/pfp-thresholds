@@ -2,14 +2,14 @@ add_executable(pfp_thresholds pfp_thresholds.cpp)
 target_link_libraries(pfp_thresholds common pfp gsacak sdsl malloc_count)
 
 add_executable(pfp_thresholds64 pfp_thresholds.cpp)
-target_link_libraries(pfp_thresholds64 common pfp gsacak sdsl malloc_count)
+target_link_libraries(pfp_thresholds64 common pfp gsacak64 sdsl malloc_count)
 target_compile_options(pfp_thresholds64 PUBLIC -DM64)
 
 add_executable(pfp_lcp pfp_lcp.cpp)
 target_link_libraries(pfp_lcp common pfp gsacak sdsl malloc_count)
 
 add_executable(pfp_lcp64 pfp_lcp.cpp)
-target_link_libraries(pfp_lcp64 common pfp gsacak sdsl malloc_count)
+target_link_libraries(pfp_lcp64 common pfp gsacak64 sdsl malloc_count)
 target_compile_options(pfp_lcp64 PUBLIC -DM64)
 
 add_executable(sdsl_thresholds sdsl_thresholds.cpp)
@@ -23,5 +23,5 @@ add_executable(gsacak_thresholds gsacak_thresholds.cpp)
 target_link_libraries(gsacak_thresholds common gsacak sdsl malloc_count)
 
 add_executable(gsacak_thresholds64 gsacak_thresholds.cpp)
-target_link_libraries(gsacak_thresholds64 common gsacak sdsl malloc_count)
+target_link_libraries(gsacak_thresholds64 common gsacak64 sdsl malloc_count)
 target_compile_options(gsacak_thresholds64 PUBLIC -DM64)
