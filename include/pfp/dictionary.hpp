@@ -125,7 +125,7 @@ public:
     b_d.resize(d.size());
     for(size_t i = 0; i < b_d.size(); ++i) b_d[i] = false; // bug in resize
     b_d[0] = true; // Mark the first phrase
-    for(int i = 1; i < d.size(); ++i )
+    for(size_t i = 1; i < d.size(); ++i )
       b_d[i] = (d[i-1]==EndOfWord);
     b_d[d.size()-1] = true; // This is necessary to get the length of the last phrase
 

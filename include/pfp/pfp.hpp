@@ -100,8 +100,7 @@ public:
     verbose("Computing s_lcp_T");
     _elapsed_time(compute_s_lcp_T());
 
-
-
+    // print_sizes();
 
     // Clear unnecessary elements
     clear_unnecessary_elements();

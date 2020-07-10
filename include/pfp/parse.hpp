@@ -74,10 +74,12 @@ public:
     read_file(tmp_filename.c_str(), p);
     p.push_back(0); // this is the terminator for the sacak algorithm
 
-    // Uploading the frequency file
-    tmp_filename = filename + std::string(".occ");
-    read_file(tmp_filename.c_str(), freq);
-    freq.insert(freq.begin(), 1);
+    // // Uploading the frequency file
+    // tmp_filename = filename + std::string(".occ");
+    // read_file(tmp_filename.c_str(), freq);
+    // freq.insert(freq.begin(), 1);
+
+    compute_freq();
 
     build();
 
@@ -91,6 +93,7 @@ public:
     _elapsed_time(
       sacak_int(&p[0],&saP[0],p.size(),alphabet_size);
     );
+
 
 
     // inverted list of the parsing.
