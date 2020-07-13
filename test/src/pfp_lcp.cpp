@@ -111,6 +111,13 @@ int main(int argc, char* const argv[]) {
     if (never_seen[lcp.heads[i]])
     {
       never_seen[lcp.heads[i]] = false;
+
+      // Write a zero so the positions of thresholds and BWT runs are the same
+      size_t zero = 0;
+      if (fwrite(&zero, THRBYTES, 1, thr_file) != 1)
+        error("SA write error 1");
+      if (fwrite(&zero, THRBYTES, 1, thr_pos_file) != 1)
+        error("SA write error 1");
     }
     else
     {

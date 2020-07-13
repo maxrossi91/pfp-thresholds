@@ -84,6 +84,14 @@ void build_thresholds(Args args){
 
   size_t r = 0;
   never_seen[bwt[0]] = false;
+  
+  // Write a zero so the positions of thresholds and BWT runs are the same
+  size_t zero = 0;
+  if (fwrite(&zero, THRBYTES, 1, thr_file) != 1)
+    error("SA write error 1");
+  if (fwrite(&zero, THRBYTES, 1, thr_pos_file) != 1)
+    error("SA write error 1");
+
   for (size_t i = 1; i < bwt.size(); ++i)
   {
     if (bwt[i] == bwt[i - 1])
@@ -92,6 +100,12 @@ void build_thresholds(Args args){
     if (never_seen[bwt[i]])
     {
       never_seen[bwt[i]] = false;
+      // Write a zero so the positions of thresholds and BWT runs are the same
+      size_t zero = 0;
+      if (fwrite(&zero, THRBYTES, 1, thr_file) != 1)
+        error("SA write error 1");
+      if (fwrite(&zero, THRBYTES, 1, thr_pos_file) != 1)
+        error("SA write error 1");
     }
     else
     {

@@ -146,3 +146,19 @@ if(NOT rlbwt2lcp_POPULATED)
   # target_include_directories(rlbwt2lcp PUBLIC "${rlbwt2lcp_BINARY_DIR}/internal")
 endif()
 
+## Add r-index
+FetchContent_Declare(
+  r-index
+  GIT_REPOSITORY https://github.com/maxrossi91/r-index.git
+)
+
+FetchContent_GetProperties(r-index)
+if(NOT r-index_POPULATED)
+  FetchContent_Populate(r-index)
+
+  add_subdirectory(${r-index_SOURCE_DIR} ${r-index_BINARY_DIR} )#EXCLUDE_FROM_ALL)
+  add_library(ri INTERFACE)
+  target_link_libraries(ri INTERFACE klib z)
+  target_include_directories(ri INTERFACE ${r-index_SOURCE_DIR}/internal)
+endif()
+
