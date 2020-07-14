@@ -42,6 +42,8 @@ class ms_pointers : ri::r_index<sparse_bv_type, rle_string_t>
 public:
 
     std::vector<size_t> thresholds;
+    
+    std::vector<ulint> samples_start;
 
     ms_pointers(std::string filename) : 
         ri::r_index<sparse_bv_type, rle_string_t>()
@@ -80,6 +82,8 @@ public:
 
         this->build_phi(samples_first_vec, samples_last_vec); //
 
+
+        this->read_run_ends(filename + ".ssa", n, samples_start); // fast Hack
 
         std::chrono::high_resolution_clock::time_point t_insert_end = std::chrono::high_resolution_clock::now();
 
@@ -138,9 +142,6 @@ public:
         for (size_t i = 0; i < pattern.size(); ++i)
         {
             auto c = pattern[m - i - 1];
-            // Perform one backward step
-
-            pos = LF(pos,c);
 
             if (pos < this->bwt.size() && this->bwt[pos] == c)
             {
@@ -150,8 +151,12 @@ public:
             {
                 // Get threshold
                 ri::ulint rnk = this->bwt.rank(pos, c);
-                size_t thr = this->bwt.size();
-                if (rnk < this->bwt.number_of_runs_of_letter(c))
+                size_t thr = this->bwt.size()+1;
+                
+                ulint next_pos = pos;
+
+                // if (rnk < (this->F[c] - this->F[c-1]) // I can use F to compute it
+                if (rnk < this->bwt.number_of_letter(c))
                 {
                     // j is the first position of the next run of c's
                     ri::ulint j = this->bwt.select(rnk, c);
@@ -159,7 +164,11 @@ public:
 
                     thr = thresholds[run_of_j]; // If it is the first run thr = 0
 
-                    sample = this->samples_last[run_of_j];
+                    // Here we should use Phi_inv that is not implemented yet
+                    // sample = this->Phi(this->samples_last[run_of_j - 1]) - 1;
+                    sample = samples_start[run_of_j];
+
+                    next_pos = j;
                 }
 
                 if(pos < thr){
@@ -167,13 +176,19 @@ public:
                     rnk--;
                     ri::ulint j = this->bwt.select(rnk, c);
                     ri::ulint run_of_j = this->bwt.run_of_position(j);
-                    sample = this->Phi(this->samples_last[run_of_j - 1]);
+                    sample = this->samples_last[run_of_j];
+
+                    next_pos = j;
                 }
 
+                pos = next_pos;
 
             }
 
             ms_pointers[m-i-1] = sample;
+
+            // Perform one backward step
+            pos = LF(pos, c);
         }
 
         return ms_pointers;
@@ -195,6 +210,7 @@ public:
         ri::ulint l = this->F[c] + c_before;
         return l;
     }
+
 
 private:
     

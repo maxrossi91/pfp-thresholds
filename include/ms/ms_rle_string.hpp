@@ -66,6 +66,11 @@ class ms_rle_string : public ri::rle_string<sparse_bitvector_t, string_t>
         return this->runs_per_letter[c].number_of_1();
     }
 
+    size_t number_of_letter(uint8_t c)
+    {
+        return this->runs_per_letter[c].size();
+    }
+
 
 
     private :

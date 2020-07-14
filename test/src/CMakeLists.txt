@@ -31,3 +31,8 @@ add_executable(matching_statistics_pointers matching_statistics_pointers.cpp)
 target_link_libraries(matching_statistics_pointers common sdsl divsufsort divsufsort64 malloc_count ri)
 target_include_directories(matching_statistics_pointers PUBLIC "../../include/ms")
 # target_include_directories(matching_statistics_pointers PUBLIC "${r-index_SOURCE_DIR}/internal")
+
+add_executable(matching_statistics matching_statistics.cpp)
+target_link_libraries(matching_statistics common sdsl divsufsort divsufsort64 malloc_count ri)
+target_include_directories(matching_statistics PUBLIC "../../include/ms")
+target_include_directories(matching_statistics PUBLIC "../../include/pfp")

@@ -327,7 +327,14 @@ private:
         if (never_seen[next_char])
         {
             // if(next_char >= 1) // I am assuming that the BWT has only one 0
-                never_seen[next_char] = false;
+            never_seen[next_char] = false;
+
+            // Write a zero so the positions of thresholds and BWT runs are the same
+            size_t zero = 0;
+            if (fwrite(&zero, THRBYTES, 1, thr_file) != 1)
+                error("SA write error 1");
+            if (fwrite(&zero, THRBYTES, 1, thr_pos_file) != 1)
+                error("SA write error 1");
         }
         else
         {
