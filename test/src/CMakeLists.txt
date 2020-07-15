@@ -36,3 +36,6 @@ add_executable(matching_statistics matching_statistics.cpp)
 target_link_libraries(matching_statistics common sdsl divsufsort divsufsort64 malloc_count ri)
 target_include_directories(matching_statistics PUBLIC "../../include/ms")
 target_include_directories(matching_statistics PUBLIC "../../include/pfp")
+
+add_executable(sdsl_matching_statistics sdsl_matching_statistics.cpp)
+target_link_libraries(sdsl_matching_statistics common sdsl divsufsort divsufsort64 malloc_count)
