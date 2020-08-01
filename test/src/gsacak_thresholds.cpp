@@ -47,7 +47,10 @@ int main(int argc, char* const argv[]) {
 
   verbose("Reading text from file");
   std::vector<uint8_t> text;
-  read_fasta_file(args.filename.c_str(), text);
+  if(args.is_fasta) 
+    read_fasta_file(args.filename.c_str(), text);
+  else
+    read_file(args.filename.c_str(), text);
   verbose("Text size: ", text.size());
 
   // std::vector<char> tmp(args.w - 1, EndOfWord);
@@ -148,6 +151,13 @@ int main(int argc, char* const argv[]) {
 
 
   never_seen[bwt[0]] = false;
+  // Write a zero so the positions of thresholds and BWT runs are the same
+  size_t zero = 0;
+  if (fwrite(&zero, THRBYTES, 1, thr_file) != 1)
+    error("SA write error 1");
+  if (fwrite(&zero, THRBYTES, 1, thr_pos_file) != 1)
+    error("SA write error 1");
+    
   for(size_t i = 1; i < bwt.size(); ++i){
     if(bwt[i] == bwt[i-1])
       continue;
