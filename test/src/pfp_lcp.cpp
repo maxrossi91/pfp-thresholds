@@ -64,81 +64,70 @@ int main(int argc, char* const argv[]) {
   verbose("Elapsed time (s): ", std::chrono::duration<double, std::ratio<1>>(t_insert_end - t_insert_start).count());
   // auto time = std::chrono::duration<double, std::ratio<1>>(t_insert_end - t_insert_start).count();
 
-
-  verbose("Building the thresholds");
-
   verbose("Memory peak: ", malloc_count_peak());
   std::chrono::high_resolution_clock::time_point t_start = std::chrono::high_resolution_clock::now();
 
   // This code gets timed
 
-  
-  // Building the sampled LCP array of T in corrispondence of the beginning of each phrase.
-  verbose("Building the thresholds - sampled LCP");
-
-  size_t n_phrases = pf.dict.n_phrases();
-  size_t len_P = pf.pars.p.size();
-
-  // Computing the thresholds
-  verbose("Building the thresholds - min_s and pos_s");
+  verbose("Building the LCP");
 
   
   pfp_lcp lcp(pf);
 
   
-  verbose("Memory peak: ", malloc_count_peak());
-  verbose("Building the thresholds - constructing thresholds");
+  // verbose("Memory peak: ", malloc_count_peak());
+  // verbose("Building the thresholds - constructing thresholds");
 
-  // Opening output files
-  FILE *thr_file;
-  std::string outfile = args.filename + std::string(".thr");
-  if ((thr_file = fopen(outfile.c_str(), "w")) == nullptr)
-    error("open() file " + outfile + " failed");
+  // // Opening output files
+  // FILE *thr_file;
+  // std::string outfile = args.filename + std::string(".thr");
+  // if ((thr_file = fopen(outfile.c_str(), "w")) == nullptr)
+  //   error("open() file " + outfile + " failed");
   
-  FILE *thr_pos_file;
-  outfile = args.filename + std::string(".thr_pos");
-  if ((thr_pos_file = fopen(outfile.c_str(), "w")) == nullptr)
-    error("open() file " + outfile + " failed");
+  // FILE *thr_pos_file;
+  // outfile = args.filename + std::string(".thr_pos");
+  // if ((thr_pos_file = fopen(outfile.c_str(), "w")) == nullptr)
+  //   error("open() file " + outfile + " failed");
 
-  // std::vector<size_t> thresholds;
-  // std::vector<size_t> thresholds_pos_s;
-  std::vector<uint64_t> last_seen(256, 0);
-  std::vector<bool> never_seen(256, true);
+  // // std::vector<size_t> thresholds;
+  // // std::vector<size_t> thresholds_pos_s;
+  // std::vector<uint64_t> last_seen(256, 0);
+  // std::vector<bool> never_seen(256, true);
 
-  sdsl::rmq_succinct_sct<> rmq_min_s = sdsl::rmq_succinct_sct<>(&lcp.min_s);
+  // sdsl::rmq_succinct_sct<> rmq_min_s = sdsl::rmq_succinct_sct<>(&lcp.min_s);
 
-  for(size_t i = 1; i < lcp.heads.size(); ++i){
-    if (never_seen[lcp.heads[i]])
-    {
-      never_seen[lcp.heads[i]] = false;
+  // for(size_t i = 1; i < lcp.heads.size(); ++i){
+  //   if (never_seen[lcp.heads[i]])
+  //   {
+  //     never_seen[lcp.heads[i]] = false;
 
-      // Write a zero so the positions of thresholds and BWT runs are the same
-      size_t zero = 0;
-      if (fwrite(&zero, THRBYTES, 1, thr_file) != 1)
-        error("SA write error 1");
-      if (fwrite(&zero, THRBYTES, 1, thr_pos_file) != 1)
-        error("SA write error 1");
-    }
-    else
-    {
-      size_t j = rmq_min_s(last_seen[lcp.heads[i]] + 1, i - 1);
-      if (fwrite(&lcp.min_s[j], THRBYTES, 1, thr_file) != 1)
-        error("SA write error 1");
-      if (fwrite(&lcp.pos_s[j], THRBYTES, 1, thr_pos_file) != 1)
-        error("SA write error 1");
-      // thresholds.push_back(min_s[j]);
-      // thresholds_pos_s.push_back(pos_s[j]);
-    }
-    last_seen[lcp.heads[i]] = i;
-  }
+  //     // Write a zero so the positions of thresholds and BWT runs are the same
+  //     size_t zero = 0;
+  //     if (fwrite(&zero, THRBYTES, 1, thr_file) != 1)
+  //       error("SA write error 1");
+  //     if (fwrite(&zero, THRBYTES, 1, thr_pos_file) != 1)
+  //       error("SA write error 1");
+  //   }
+  //   else
+  //   {
+  //     size_t j = rmq_min_s(last_seen[lcp.heads[i]] + 1, i - 1);
+  //     if (fwrite(&lcp.min_s[j], THRBYTES, 1, thr_file) != 1)
+  //       error("SA write error 1");
+  //     if (fwrite(&lcp.pos_s[j], THRBYTES, 1, thr_pos_file) != 1)
+  //       error("SA write error 1");
+  //     // thresholds.push_back(min_s[j]);
+  //     // thresholds_pos_s.push_back(pos_s[j]);
+  //   }
+  //   last_seen[lcp.heads[i]] = i;
+  // }
 
-  // Close output files
-  fclose(thr_file);
-  fclose(thr_pos_file);
+  // // Close output files
+  // fclose(thr_file);
+  // fclose(thr_pos_file);
 
-  std::chrono::high_resolution_clock::time_point t_end = std::chrono::high_resolution_clock::now();
-  auto time = std::chrono::duration<double, std::ratio<1>>(t_end - t_start).count();
-  verbose("Elapsed time (s): ", time);
+  // std::chrono::high_resolution_clock::time_point t_end = std::chrono::high_resolution_clock::now();
+  // auto time = std::chrono::duration<double, std::ratio<1>>(t_end - t_start).count();
+  // verbose("Elapsed time (s): ", time);
 
   auto mem_peak = malloc_count_peak();
   verbose("Memory peak: ", malloc_count_peak());
@@ -148,24 +137,18 @@ int main(int argc, char* const argv[]) {
   {
     // space = thresholds.size() * sizeof(thresholds[0]);
     // space += thresholds_pos_s.size() * sizeof(thresholds_pos_s[0]);
-    verbose("Thresholds size (bytes): ", space);
+    verbose("LCP size (bytes): ", space);
   }
-
-  // verbose("Storing the Thresholds to file");
-  // std::string outfile = args.filename + std::string(".thr");
-  // write_file(outfile.c_str(), thresholds);
-  // outfile = args.filename + std::string(".thr_pos");
-  // write_file(outfile.c_str(), thresholds_pos_s);
   
   if (args.store)
   {
-    // verbose("Storing the BWT to file");
-    // std::vector<uint8_t> bwt;
-    // for(int i = 1; i < heads.size(); ++i){
-    //   bwt.insert(bwt.end(), lengths[i], heads[i] );
-    // }
-    // outfile = args.filename + std::string(".pfp.bwt");
-    // write_file(outfile.c_str(), bwt);
+    lcp.pos_s.erase(lcp.pos_s.begin());
+    lcp.min_s.erase(lcp.min_s.begin());
+    verbose("Storing the LCP to file");
+    std::string outfile = args.filename + std::string(".pfp.lcp.pos");
+    write_file(outfile.c_str(), lcp.pos_s);
+    outfile = args.filename + std::string(".pfp.lcp.min");
+    write_file(outfile.c_str(), lcp.min_s);
   }
 
   if (args.csv)
