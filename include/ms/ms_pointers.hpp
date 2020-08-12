@@ -44,6 +44,21 @@ public:
     std::vector<size_t> thresholds;
     
     std::vector<ulint> samples_start;
+    // std::vector<ulint> samples_last;
+
+    // static const uchar TERMINATOR = 1;
+    // bool sais = true;
+    // /*
+    //  * sparse RLBWT: r (log sigma + (1+epsilon) * log (n/r)) (1+o(1)) bits
+    //  */
+    // //F column of the BWT (vector of 256 elements)
+    // std::vector<ulint> F;
+    // //L column of the BWT, run-length compressed
+    // rle_string_t bwt;
+    // ulint terminator_position = 0;
+    // ulint r = 0; //number of BWT runs
+
+    typedef size_t size_type;
 
     ms_pointers(std::string filename) : 
         ri::r_index<sparse_bv_type, rle_string_t>()
@@ -71,19 +86,29 @@ public:
         ifs.seekg(0);
         this->build_F(ifs);
 
-        std::vector<std::pair<ulint, ulint>> samples_first_vec;
+        // std::vector<std::pair<ulint, ulint>> samples_first_vec;
+        // std::vector<ulint> samples_last_vec;
+        // this->read_run_starts(filename + ".ssa", n, samples_first_vec);
+        // this->read_run_ends(filename + ".esa", n, samples_last_vec);
+        // assert(samples_first_vec.size() == this->r);
+        // assert(samples_last_vec.size() == this->r);
+
+        // verbose("Building phi function");
+
+        // this->build_phi(samples_first_vec, samples_last_vec); //
+
         std::vector<ulint> samples_last_vec;
-        this->read_run_starts(filename + ".ssa", n, samples_first_vec);
+        this->read_run_ends(filename + ".ssa", n, samples_start); // fast Hack
         this->read_run_ends(filename + ".esa", n, samples_last_vec);
-        assert(samples_first_vec.size() == this->r);
         assert(samples_last_vec.size() == this->r);
 
-        verbose("Building phi function");
+        this->samples_last = int_vector<>(this->r, 0, log_n); //text positions corresponding to last characters in BWT runs, in BWT order
 
-        this->build_phi(samples_first_vec, samples_last_vec); //
-
-
-        this->read_run_ends(filename + ".ssa", n, samples_start); // fast Hack
+        for (ulint i = 0; i < samples_last_vec.size(); ++i)
+        {
+            assert(bitsize(uint64_t(samples_last_vec[i])) <= log_n);
+            this->samples_last[i] = samples_last_vec[i];
+        }
 
         std::chrono::high_resolution_clock::time_point t_insert_end = std::chrono::high_resolution_clock::now();
 
@@ -129,7 +154,7 @@ public:
     }
 
     // Computes the matching statistics pointers for the given pattern
-    std::vector<size_t> query(std::vector<uint8_t> pattern)
+    std::vector<size_t> query(const std::vector<uint8_t>& pattern)
     {
         size_t m = pattern.size();
 
@@ -211,9 +236,109 @@ public:
         return l;
     }
 
+    /* serialize the structure to the ostream
+     * \param out     the ostream
+     */
+    size_type serialize(std::ostream &out, sdsl::structure_tree_node *v = nullptr, std::string name = "") // const
+    {
+        sdsl::structure_tree_node *child = sdsl::structure_tree::add_child(v, name, sdsl::util::class_name(*this));
+        size_type written_bytes = 0;
 
-private:
-    
-};
+        out.write((char *)&this->terminator_position, sizeof(this->terminator_position));
+        written_bytes += sizeof(this->terminator_position);
+        written_bytes += my_serialize(this->F, out, child, "F");
+        written_bytes += this->bwt.serialize(out);
+        written_bytes += this->samples_last.serialize(out);
+
+        written_bytes += my_serialize(thresholds, out, child, "thresholds");
+        written_bytes += my_serialize(samples_start, out, child, "samples_start");
+
+        sdsl::structure_tree::add_size(child, written_bytes);
+        return written_bytes;
+    }
+
+    /* load the structure from the istream
+     * \param in the istream
+     */
+    void load(std::istream &in)
+    {
+
+        in.read((char *)&this->terminator_position, sizeof(this->terminator_position));
+        my_load(this->F, in);
+        this->bwt.load(in);
+        this->r = this->bwt.number_of_runs();
+        this->pred.load(in);
+        this->samples_last.load(in);
+        this->pred_to_run.load(in);
+
+        my_load(thresholds,in);
+        my_load(samples_start,in);
+    }
+
+    // // From r-index
+    // ulint get_last_run_sample()
+    // {
+    //     return (samples_last[r - 1] + 1) % bwt.size();
+    // }
+
+    protected :
+
+        // // From r-index
+        // vector<ulint> build_F(std::ifstream &ifs)
+        // {
+        //     ifs.clear();
+        //     ifs.seekg(0);
+        //     F = vector<ulint>(256, 0);
+        //     uchar c;
+        //     ulint i = 0;
+        //     while (ifs >> c)
+        //     {
+        //         if (c > TERMINATOR)
+        //             F[c]++;
+        //         else
+        //         {
+        //             F[TERMINATOR]++;
+        //             terminator_position = i;
+        //         }
+        //         i++;
+        //     }
+        //     for (ulint i = 255; i > 0; --i)
+        //         F[i] = F[i - 1];
+        //     F[0] = 0;
+        //     for (ulint i = 1; i < 256; ++i)
+        //         F[i] += F[i - 1];
+        //     return F;
+        // }
+
+        // // From r-index
+        // vector<pair<ulint, ulint>> &read_run_starts(std::string fname, ulint n, vector<pair<ulint, ulint>> &ssa)
+        // {
+        //     ssa.clear();
+        //     std::ifstream ifs(fname);
+        //     uint64_t x = 0;
+        //     uint64_t y = 0;
+        //     uint64_t i = 0;
+        //     while (ifs.read((char *)&x, 5) && ifs.read((char *)&y, 5))
+        //     {
+        //         ssa.push_back(pair<ulint, ulint>(y ? y - 1 : n - 1, i));
+        //         i++;
+        //     }
+        //     return ssa;
+        // }
+
+        // // From r-index
+        // vector<ulint> &read_run_ends(std::string fname, ulint n, vector<ulint> &esa)
+        // {
+        //     esa.clear();
+        //     std::ifstream ifs(fname);
+        //     uint64_t x = 0;
+        //     uint64_t y = 0;
+        //     while (ifs.read((char *)&x, 5) && ifs.read((char *)&y, 5))
+        //     {
+        //         esa.push_back(y ? y - 1 : n - 1);
+        //     }
+        //     return esa;
+        // }
+    };
 
 #endif /* end of include guard: _MS_POINTERS_HH */

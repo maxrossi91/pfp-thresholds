@@ -71,7 +71,21 @@ class ms_rle_string : public ri::rle_string<sparse_bitvector_t, string_t>
         return this->runs_per_letter[c].size();
     }
 
+    /* serialize the structure to the ostream
+     * \param out     the ostream
+     */
+    ulint serialize(std::ostream &out) 
+    {
+        return ri::rle_string<sparse_bitvector_t, string_t>::serialize(out);
+    }
 
+    /* load the structure from the istream
+     * \param in the istream
+     */
+    void load(std::istream &in)
+    {
+        ri::rle_string<sparse_bitvector_t, string_t>::load(in);
+    }
 
     private :
 };
