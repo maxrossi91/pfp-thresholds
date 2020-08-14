@@ -196,6 +196,9 @@ public:
     // Reducing memory tentative
     pars.isaP.clear(); 
     pars.isaP.shrink_to_fit();
+
+    pars.saP.clear(); 
+    pars.saP.shrink_to_fit();
     
     pars.p.clear();
     pars.p.shrink_to_fit();

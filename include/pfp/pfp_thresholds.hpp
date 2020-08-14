@@ -109,16 +109,16 @@ public:
                         update_bwt(curr.bwt_char, pf.get_freq(curr.phrase));
                         update_min_s(lcp_suffix,j);
 
-                        // get min_s_P using rmq_s_lcp_T
-                        size_t left = pf.pars.select_ilist_s(curr.phrase + 1);
-                        size_t right = pf.pars.select_ilist_s(curr.phrase + 2) - 1;
-                        if (left < right && lcp_suffix >= curr.suffix_length)
-                        {
-                            size_t pos_s_P = pf.rmq_s_lcp_T(left + 1, right);
-                            size_t min_s_P = pf.s_lcp_T[pos_s_P] + curr.suffix_length - pf.dict.length_of_phrase(curr.phrase);
-                            // Update current min
-                            update_min_s(min_s_P, j + pos_s_P - left);
-                        }
+                        // // get min_s_P using rmq_s_lcp_T
+                        // size_t left = pf.pars.select_ilist_s(curr.phrase + 1);
+                        // size_t right = pf.pars.select_ilist_s(curr.phrase + 2) - 1;
+                        // if (left < right && lcp_suffix >= curr.suffix_length)
+                        // {
+                        //     size_t pos_s_P = pf.rmq_s_lcp_T(left + 1, right);
+                        //     size_t min_s_P = pf.s_lcp_T[pos_s_P] + curr.suffix_length - pf.dict.length_of_phrase(curr.phrase);
+                        //     // Update current min
+                        //     update_min_s(min_s_P, j + pos_s_P - left);
+                        // }
 
                         // Update prevs
                         prev = curr;

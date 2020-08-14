@@ -42,14 +42,21 @@ public:
     std::vector<size_t> min_s; // Value of the minimum lcp_T in each run of BWT_T
     std::vector<size_t> pos_s;    // Position of the minimum lcp_T in each run of BWT_T
 
-    std::vector<uint8_t> heads;
+    uint8_t head;
+    // std::vector<uint8_t> heads;
 
-    pfp_lcp(pf_parsing &pfp_) : 
+    pfp_lcp(pf_parsing &pfp_, std::string filename) : 
                 pf(pfp_),
                 min_s(1, pf.n),
                 pos_s(1,0),
-                heads(1, 0)
+                head(0)
+                // heads(1, 0)
     {
+        // Opening output files
+        std::string outfile = filename + std::string(".lcp");
+        if ((lcp_file = fopen(outfile.c_str(), "w")) == nullptr)
+            error("open() file " + outfile + " failed");
+
         assert(pf.dict.d[pf.dict.saD[0]] == EndOfDict);
 
         phrase_suffix_t curr;
@@ -63,8 +70,6 @@ public:
                 // Compute the next character of the BWT of T
                 std::vector<phrase_suffix_t> same_suffix(1, curr);  // Store the list of all phrase ids with the same suffix.
 
-                bool same_chars = true;
-
                 phrase_suffix_t next = curr;
 
                 while (inc(next) && (pf.dict.lcpD[next.i] >= curr.suffix_length))
@@ -74,98 +79,60 @@ public:
                     assert((pf.dict.b_d[next.sn] == 0 && next.suffix_length >= pf.w) || (next.suffix_length != curr.suffix_length));
                     if (next.suffix_length == curr.suffix_length)
                     {
-                        same_chars = (same_chars && same_suffix.back().bwt_char == next.bwt_char);
-
                         same_suffix.push_back(next);
                     }
 
                 }
 
-                // Simple case
-                if (same_chars)
+                // Hard case
+                int_t lcp_suffix = compute_lcp_suffix(curr,prev);
+
+                typedef std::pair<int_t *, std::pair<int_t *, uint8_t>> pq_t;
+
+                // using lambda to compare elements.
+                auto cmp = [](const pq_t &lhs, const pq_t &rhs) {
+                    return *lhs.first > *rhs.first;
+                };
+
+                std::priority_queue<pq_t, std::vector<pq_t>, decltype(cmp)> pq(cmp);
+                for (auto s: same_suffix)
                 {
-
-                    for (auto curr : same_suffix)
-                    {
-                        // curr = elem;
-                        // Compute phrase boundary lcp
-                        int_t lcp_suffix = compute_lcp_suffix(curr,prev);
-
-                        // Update min_s
-                        update_min_s(lcp_suffix,j);
-
-                        update_bwt(curr.bwt_char, pf.get_freq(curr.phrase));
-                        update_min_s(lcp_suffix,j);
-
-                        // get min_s_P using rmq_s_lcp_T
-                        size_t left = pf.pars.select_ilist_s(curr.phrase + 1);
-                        size_t right = pf.pars.select_ilist_s(curr.phrase + 2) - 1;
-                        if (left < right && lcp_suffix >= curr.suffix_length)
-                        {
-                            size_t pos_s_P = pf.rmq_s_lcp_T(left + 1, right);
-                            size_t min_s_P = pf.s_lcp_T[pos_s_P] + curr.suffix_length - pf.dict.length_of_phrase(curr.phrase);
-                            // Update current min
-                            update_min_s(min_s_P, j + pos_s_P - left);
-                        }
-
-                        // Update prevs
-                        prev = curr;
-
-                        j += pf.get_freq(curr.phrase);
-                    }
+                    size_t begin = pf.pars.select_ilist_s(s.phrase + 1);
+                    size_t end = pf.pars.select_ilist_s(s.phrase + 2);
+                    pq.push({&pf.pars.ilist[begin], {&pf.pars.ilist[end], s.bwt_char}});
                 }
-                else
+
+                size_t prev_occ;
+                bool first = true;
+                while (!pq.empty())
                 {
-                    // Hard case
-                    int_t lcp_suffix = compute_lcp_suffix(curr,prev);
+                    auto curr_occ = pq.top();
+                    pq.pop();
 
-                    typedef std::pair<int_t *, std::pair<int_t *, uint8_t>> pq_t;
-
-                    // using lambda to compare elements.
-                    auto cmp = [](const pq_t &lhs, const pq_t &rhs) {
-                        return *lhs.first > *rhs.first;
-                    };
-
-                    std::priority_queue<pq_t, std::vector<pq_t>, decltype(cmp)> pq(cmp);
-                    for (auto s: same_suffix)
+                    if (!first)
                     {
-                        size_t begin = pf.pars.select_ilist_s(s.phrase + 1);
-                        size_t end = pf.pars.select_ilist_s(s.phrase + 2);
-                        pq.push({&pf.pars.ilist[begin], {&pf.pars.ilist[end], s.bwt_char}});
+                        // Compute the minimum s_lcpP of the the current and previous occurrence of the phrase in BWT_P
+                        lcp_suffix = curr.suffix_length + min_s_lcp_T(*curr_occ.first, prev_occ);
                     }
+                    first = false;
+                    // Update min_s
+                    print_lcp(lcp_suffix, j);
+                    
+                    update_bwt(curr_occ.second.second, 1);
 
-                    size_t prev_occ;
-                    bool first = true;
-                    while (!pq.empty())
-                    {
-                        auto curr_occ = pq.top();
-                        pq.pop();
+                    // Update prevs
+                    prev_occ = *curr_occ.first;
 
-                        if (!first)
-                        {
-                            // Compute the minimum s_lcpP of the the current and previous occurrence of the phrase in BWT_P
-                            lcp_suffix = curr.suffix_length + min_s_lcp_T(*curr_occ.first, prev_occ);
-                        }
-                        first = false;
-                        // Update min_s
-                        update_min_s(lcp_suffix, j);
-                        
-                        update_bwt(curr_occ.second.second, 1);
-                        update_min_s(lcp_suffix, j);
+                    // Update pq
+                    curr_occ.first++;
+                    if (curr_occ.first != curr_occ.second.first)
+                        pq.push(curr_occ);
 
-                        // Update prevs
-                        prev_occ = *curr_occ.first;
-
-                        // Update pq
-                        curr_occ.first++;
-                        if (curr_occ.first != curr_occ.second.first)
-                            pq.push(curr_occ);
-
-                        j += 1;
-                    }
-
-                    prev = same_suffix.back();
+                    j += 1;
                 }
+
+                prev = same_suffix.back();
+                
                 curr = next;
                 
             }
@@ -174,6 +141,8 @@ public:
                 inc(curr);
             }
         }
+
+        fclose(lcp_file);
     }
 
 private:
@@ -188,6 +157,8 @@ private:
 
     
     size_t j = 0;
+
+    FILE *lcp_file;
 
     inline bool inc(phrase_suffix_t& s)
     {
@@ -255,13 +226,11 @@ private:
         return lcp_suffix;
     }
 
-    inline void update_min_s(int_t val, size_t pos)
+    inline void print_lcp(int_t val, size_t pos)
     {
-        if (val < min_s.back())
-        {
-            min_s.back() = val;
-            pos_s.back() = j;
-        }
+        size_t tmp_val = val;
+        if (fwrite(&tmp_val, THRBYTES, 1, lcp_file) != 1)
+            error("LCP write error 1");
     }
 
     // We can put here the check if we want to store the LCP or stream it out
@@ -273,13 +242,16 @@ private:
 
     inline void update_bwt(uint8_t next_char, size_t length)
     {
-        if (heads.back() != next_char)
-        {
-            heads.push_back(next_char);
-            // lengths.push_back(0); // Debug only
-            // Create the new min
-            new_min_s(pf.n+10, j);
-        }
+        if (head != next_char)
+            head = next_char;
+
+        // if (heads.back() != next_char)
+        // {
+        //     heads.push_back(next_char);
+        //     // lengths.push_back(0); // Debug only
+        //     // Create the new min
+        //     new_min_s(pf.n+10, j);
+        // }
 
         // lengths.back() += length; // Debug only
     }

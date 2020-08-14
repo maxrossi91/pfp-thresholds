@@ -30,6 +30,13 @@ add_executable(gsacak_thresholds64 gsacak_thresholds.cpp)
 target_link_libraries(gsacak_thresholds64 common gsacak64 sdsl malloc_count)
 target_compile_options(gsacak_thresholds64 PUBLIC -DM64)
 
+add_executable(gsacak_lcp gsacak_lcp.cpp)
+target_link_libraries(gsacak_lcp common gsacak sdsl malloc_count)
+
+add_executable(gsacak_lcp64 gsacak_lcp.cpp)
+target_link_libraries(gsacak_lcp64 common gsacak64 sdsl malloc_count)
+target_compile_options(gsacak_lcp64 PUBLIC -DM64)
+
 FetchContent_GetProperties(r-index)
 add_executable(matching_statistics_pointers matching_statistics_pointers.cpp)
 target_link_libraries(matching_statistics_pointers common sdsl divsufsort divsufsort64 malloc_count ri)

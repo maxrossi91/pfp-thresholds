@@ -108,6 +108,7 @@ static void BM_WarmUp(benchmark::State &_state)
         std::string empty_string;
     }
 
+    _state.counters["Length"] = 0;
     _state.counters["Size(bytes)"] = 0;
     _state.counters["Bits_x_Symbol"] = 0;
     _state.counters["Queries"] = 0;
@@ -128,6 +129,7 @@ auto BM_MS =
         }
     }
 
+    _state.counters["Length"] = _length;
     _state.counters["Size(bytes)"] = _size;
     _state.counters["Bits_x_Symbol"] = _size * 8.0 / _length;
     _state.counters["Queries"] = _samples[q].size();
@@ -179,7 +181,7 @@ int main(int argc, char *argv[])
     ms_pointers<> ms(test_file);
 
     std::cout << "Building random access support"<< std::endl;
-    std::cout << "ALERT!!! w is hardwired to be 10!"<< std::endl;
+    std::cout << "ALERT!!! w is hardcoded to be 10!"<< std::endl;
     size_t w = 10;
     pfp_ra ra(test_file, w);
 
@@ -192,7 +194,7 @@ int main(int argc, char *argv[])
     sdsl::load_from_file(sdsl_cst, filename);
 
     // Saple setup
-    size_t Max_Sampling_Size = 100;
+    size_t Max_Sampling_Size = 1000;
     size_t seed = 0;
     size_t n = sdsl_cst.size();
 
