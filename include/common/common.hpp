@@ -206,6 +206,30 @@ void read_file(const char *filename, std::vector<T>& ptr){
     fclose(fd);
 }
 
+void read_file(const char *filename, std::string &ptr)
+{
+  struct stat filestat;
+  FILE *fd;
+
+  if ((fd = fopen(filename, "r")) == nullptr)
+    error("open() file " + std::string(filename) + " failed");
+
+  int fn = fileno(fd);
+  if (fstat(fn, &filestat) < 0)
+    error("stat() file " + std::string(filename) + " failed");
+
+  if (filestat.st_size % sizeof(char) != 0)
+    error("invilid file " + std::string(filename));
+
+  size_t length = filestat.st_size / sizeof(char);
+  ptr.resize(length);
+
+  if ((fread(&ptr[0], sizeof(char), length, fd)) != length)
+    error("fread() file " + std::string(filename) + " failed");
+
+  fclose(fd);
+}
+
 template<typename T>
 void read_fasta_file(const char *filename, std::vector<T>& v){
     FILE* fd;

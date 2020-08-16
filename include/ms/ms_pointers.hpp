@@ -70,9 +70,15 @@ public:
         std::string bwt_fname = filename + ".bwt";
 
         verbose("RLE encoding BWT and computing SA samples");
-
         std::ifstream ifs(bwt_fname);
         this->bwt = rle_string_t(ifs); 
+        // std::string istring;
+        // read_file(bwt_fname.c_str(), istring);
+        // for(size_t i = 0; i < istring.size(); ++i)
+        //     if(istring[i]==0)
+        //         istring[i] = TERMINATOR;
+        // this->bwt = rle_string_t(istring);
+
         this->r = this->bwt.number_of_runs();
         ri::ulint n = this->bwt.size();
         int log_r = bitsize(uint64_t(this->r));
@@ -85,17 +91,11 @@ public:
 
         ifs.seekg(0);
         this->build_F(ifs);
+        // this->build_F(istring);
+        // istring.clear();
+        // istring.shrink_to_fit();
 
-        // std::vector<std::pair<ulint, ulint>> samples_first_vec;
-        // std::vector<ulint> samples_last_vec;
-        // this->read_run_starts(filename + ".ssa", n, samples_first_vec);
-        // this->read_run_ends(filename + ".esa", n, samples_last_vec);
-        // assert(samples_first_vec.size() == this->r);
-        // assert(samples_last_vec.size() == this->r);
 
-        // verbose("Building phi function");
-
-        // this->build_phi(samples_first_vec, samples_last_vec); //
 
         std::vector<ulint> samples_last_vec;
         this->read_run_ends(filename + ".ssa", n, samples_start); // fast Hack
