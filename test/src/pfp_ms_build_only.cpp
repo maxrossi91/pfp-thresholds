@@ -110,18 +110,6 @@ int main(int argc, char* const argv[]) {
   verbose("Memory peak: ", malloc_count_peak());
   verbose("Elapsed time (s): ", std::chrono::duration<double, std::ratio<1>>(t_insert_end - t_insert_start).count());
   
-  verbose("Reading patterns");
-  t_insert_start = std::chrono::high_resolution_clock::now();
-
-  std::vector<pattern_t> patterns = read_patterns(args.patterns);
-
-  t_insert_end = std::chrono::high_resolution_clock::now();
-
-  verbose("Memory peak: ", malloc_count_peak());
-  verbose("Elapsed time (s): ", std::chrono::duration<double, std::ratio<1>>(t_insert_end - t_insert_start).count());
-  
-  
-
 
 
 
@@ -133,7 +121,12 @@ int main(int argc, char* const argv[]) {
   size_t ms_size = ms.serialize(ns);
   size_t ra_size = sdsl::size_in_bytes(ra);
 
+  verbose("MS size (bytes): ", ms_size);
+  verbose("RA size (bytes): ", ra_size);
+
+
   size_t space = ms_size + ra_size;
+  verbose("Thresholds size (bytes): ", space);
   if (args.memo)
   {
     verbose("Thresholds size (bytes): ", space);
