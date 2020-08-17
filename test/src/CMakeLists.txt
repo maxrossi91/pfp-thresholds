@@ -21,7 +21,7 @@ target_include_directories(bwt_lcp_thresholds PUBLIC "${rlbwt2lcp_SOURCE_DIR}/in
 
 add_executable(bwt_lcp bwt_lcp.cpp)
 target_link_libraries(bwt_lcp common gsacak sdsl malloc_count divsufsort divsufsort64)
-target_include_directories(bwt_lcp PUBLIC "${rlbwt2lcp_SOURCE_DIR}/internal")
+target_include_directories(bwt_lcp PUBLIC "${bwt2lcp_SOURCE_DIR}/internal")
 
 add_executable(gsacak_thresholds gsacak_thresholds.cpp)
 target_link_libraries(gsacak_thresholds common gsacak sdsl malloc_count)
@@ -47,6 +47,11 @@ add_executable(matching_statistics matching_statistics.cpp)
 target_link_libraries(matching_statistics common sdsl divsufsort divsufsort64 malloc_count ri)
 target_include_directories(matching_statistics PUBLIC "../../include/ms")
 target_include_directories(matching_statistics PUBLIC "../../include/pfp")
+
+add_executable(pfp_ms_build_only pfp_ms_build_only.cpp)
+target_link_libraries(pfp_ms_build_only common sdsl divsufsort divsufsort64 malloc_count ri)
+target_include_directories(pfp_ms_build_only PUBLIC "../../include/ms")
+target_include_directories(pfp_ms_build_only PUBLIC "../../include/pfp")
 
 add_executable(sdsl_matching_statistics sdsl_matching_statistics.cpp)
 target_link_libraries(sdsl_matching_statistics common sdsl divsufsort divsufsort64 malloc_count)

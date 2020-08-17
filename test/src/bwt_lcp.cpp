@@ -72,10 +72,17 @@ void build_thresholds(Args args){
   if (args.store)
   {
     verbose("Storing the LCP to file");
-    std::string outfile = args.filename + std::string(".rlbwt2lcp.lcp.pos");
-    write_file(outfile.c_str(), M8.MIN);
-    outfile = args.filename + std::string(".rlbwt2lcp.lcp.min");
-    write_file(outfile.c_str(), M8.LCP);
+    std::string outfile = args.filename + std::string(".bwt2lcp.lcp");
+    FILE* lcp_file;
+    if ((lcp_file = fopen(outfile.c_str(), "w")) == nullptr)
+      error("open() file " + outfile + " failed");
+
+    for (size_t i = 0; i < M8.LCP.size(); ++i)
+      if (fwrite(&M8.LCP[i], THRBYTES, 1, lcp_file) != 1)
+        error("LCP write error 1");
+
+    fclose(lcp_file);
+
   }
 
   if (args.csv)
