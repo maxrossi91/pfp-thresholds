@@ -88,6 +88,7 @@ int main(int argc, char* const argv[]) {
   // Building the r-index
 
   verbose("Building the matching statistics index");
+  std::chrono::high_resolution_clock::time_point t_start = std::chrono::high_resolution_clock::now();
   std::chrono::high_resolution_clock::time_point t_insert_start = std::chrono::high_resolution_clock::now();
   
   ms_pointers<> ms(args.filename);
@@ -109,9 +110,10 @@ int main(int argc, char* const argv[]) {
   verbose("Matching statistics index construction complete");
   verbose("Memory peak: ", malloc_count_peak());
   verbose("Elapsed time (s): ", std::chrono::duration<double, std::ratio<1>>(t_insert_end - t_insert_start).count());
-  
 
-
+  std::chrono::high_resolution_clock::time_point t_end = std::chrono::high_resolution_clock::now();
+  auto time = std::chrono::duration<double, std::ratio<1>>(t_end - t_start).count();
+  verbose("Total construction time (s): ", time);
 
   auto mem_peak = malloc_count_peak();
   verbose("Memory peak: ", malloc_count_peak());

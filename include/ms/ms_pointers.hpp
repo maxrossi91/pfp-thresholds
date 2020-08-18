@@ -168,16 +168,20 @@ public:
         {
             auto c = pattern[m - i - 1];
 
-            if (pos < this->bwt.size() && this->bwt[pos] == c)
+            if (this->bwt.number_of_letter(c) == 0)
             {
-                sample --;
+                sample = 0;
+            } 
+            else if (pos < this->bwt.size() && this->bwt[pos] == c)
+            {
+                sample--;
             }
             else
             {
                 // Get threshold
                 ri::ulint rnk = this->bwt.rank(pos, c);
-                size_t thr = this->bwt.size()+1;
-                
+                size_t thr = this->bwt.size() + 1;
+
                 ulint next_pos = pos;
 
                 // if (rnk < (this->F[c] - this->F[c-1]) // I can use F to compute it
@@ -196,8 +200,9 @@ public:
                     next_pos = j;
                 }
 
-                if(pos < thr){
-                
+                if (pos < thr)
+                {
+
                     rnk--;
                     ri::ulint j = this->bwt.select(rnk, c);
                     ri::ulint run_of_j = this->bwt.run_of_position(j);
@@ -207,7 +212,6 @@ public:
                 }
 
                 pos = next_pos;
-
             }
 
             ms_pointers[m-i-1] = sample;
