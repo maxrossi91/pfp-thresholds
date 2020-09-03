@@ -57,6 +57,7 @@
 //******************************************************************************
 
 #define THRBYTES 5 // The number of bytes for the thresholds
+#define SSABYTES 5 // The number of bytes for the thresholds
 
 std::string NowTime();
 void _internal_messageInfo(const std::string message);

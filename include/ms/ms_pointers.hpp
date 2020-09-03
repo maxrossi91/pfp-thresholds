@@ -42,8 +42,10 @@ class ms_pointers : ri::r_index<sparse_bv_type, rle_string_t>
 public:
 
     std::vector<size_t> thresholds;
-    
+
     std::vector<ulint> samples_start;
+    // int_vector<> samples_start;
+    // int_vector<> samples_end;
     // std::vector<ulint> samples_last;
 
     // static const uchar TERMINATOR = 1;
@@ -110,6 +112,8 @@ public:
             this->samples_last[i] = samples_last_vec[i];
         }
 
+        // read_samples(filename + ".ssa", this->r, log_r, samples_start);
+
         std::chrono::high_resolution_clock::time_point t_insert_end = std::chrono::high_resolution_clock::now();
 
         verbose("R-index construction complete");
@@ -151,6 +155,43 @@ public:
         verbose("Memory peak: ", malloc_count_peak());
         verbose("Elapsed time (s): ", std::chrono::duration<double, std::ratio<1>>(t_insert_end - t_insert_start).count());
 
+    }
+
+    void read_samples(std::string filename, ulint r, int log_r, int_vector<> &samples)
+    {
+
+        struct stat filestat;
+        FILE *fd;
+
+        if ((fd = fopen(filename.c_str(), "r")) == nullptr)
+            error("open() file " + filename + " failed");
+
+        int fn = fileno(fd);
+        if (fstat(fn, &filestat) < 0)
+            error("stat() file " + filename + " failed");
+
+        if (filestat.st_size % SSABYTES != 0)
+            error("invilid file " + filename);
+
+        size_t length = filestat.st_size / (2*SSABYTES);
+        //Check that the length of the file is 2*r elements of 5 bytes
+        assert(length == r);
+
+        // Create the vector
+        samples = int_vector<>(r, 0, log_r);
+
+        // Read the vector
+        uint64_t left = 0;
+        uint64_t right = 0;
+        size_t i = 0;
+        while (fread((char *)&left, SSABYTES, 1, fd) && fread((char *)&right, SSABYTES, 1,fd))
+        {
+            ulint val = (right ? right - 1 : r - 1);
+            assert(bitsize(uint64_t(val)) <= log_r);
+            samples[i++] = val;
+        }
+
+        fclose(fd);
     }
 
     // Computes the matching statistics pointers for the given pattern
@@ -256,6 +297,7 @@ public:
 
         written_bytes += my_serialize(thresholds, out, child, "thresholds");
         written_bytes += my_serialize(samples_start, out, child, "samples_start");
+        // written_bytes += samples_start.serialize(out, child, "samples_start");
 
         sdsl::structure_tree::add_size(child, written_bytes);
         return written_bytes;
@@ -276,6 +318,7 @@ public:
         this->pred_to_run.load(in);
 
         my_load(thresholds,in);
+        // samples_start.load(in);
         my_load(samples_start,in);
     }
 

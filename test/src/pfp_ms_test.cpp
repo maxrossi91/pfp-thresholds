@@ -138,7 +138,7 @@ protected:
         // Generate samples
         TEST_COUT << "Generating samples" << std::endl;
         samples = new samples_t();
-        generate_samples(1000, 0, samples, ra);
+        generate_samples(100, 0, samples, ra);
     }
 
     // Per-test-suite tear-down.
@@ -246,6 +246,9 @@ TEST_F(PFP_CST_Test, CHILD)
                 EXPECT_EQ(pfp_res.second[i], sdsl_res.second[i]) << "At position: " << i << " At position: " << j;
             }
             ++j;
+
+            if(j % ((*samples)[q].size()/10) == 0)
+                TEST_COUT << (j / ((*samples)[q].size()/10))*10 <<"%" << std::endl;
         }
     }
 }

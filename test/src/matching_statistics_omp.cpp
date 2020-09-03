@@ -1,13 +1,16 @@
 /* matching_statistics - Computes the matching statistics from BWT and Thresholds
     Copyright (C) 2020 Massimiliano Rossi
+
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
     (at your option) any later version.
+
     This program is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
+
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see http://www.gnu.org/licenses/ .
 */
@@ -18,61 +21,49 @@
    \date 13/07/2020
 */
 
-#include <iostream>
-
 #define VERBOSE
 
 #include <common.hpp>
-
 #include <sdsl/io.hpp>
-
 #include <ms_pointers.hpp>
 #include <pfp_ra.hpp>
-
 #include <malloc_count.h>
 
-typedef std::pair<std::string, std::vector<uint8_t>> pattern_t;
+#include <iostream>
+#include <omp.h>
 
-std::vector<pattern_t> read_patterns(std::string filename)
+struct Patterns
 {
-  // Open File
-  FILE *fd;
-  if ((fd = fopen(filename.c_str(), "r")) == nullptr)
-    error("open() file " + filename + " failed");
+private:
+  std::ifstream input_file;
 
-  std::vector<pattern_t> patterns;
+public:
+  using pattern_t = std::pair<std::string, std::vector<uint8_t>>;
 
-  pattern_t pattern;
+  Patterns(std::string input_path) : input_file(input_path) {}
 
-  char c;
-  while (fread(&c, sizeof(char), 1, fd) == 1)
-  {
-    if (c == '>')
-    {
-      if (pattern.second.size() > 0)
-        patterns.push_back(pattern);
+  pattern_t next();
+  bool end();
+};
 
-      pattern.first.clear();
-      pattern.second.clear();
+Patterns::pattern_t Patterns::next()
+{
+  std::string header, read;
+  std::vector<uint8_t> pattern;
+  // header
+  std::getline(input_file, header);
+  // read
+  std::getline(input_file, read);
 
-      pattern.first.append(1, c);
-      while (fread(&c, sizeof(char), 1, fd) == 1 && c != '\n')
-        pattern.first.append(1, c);
-    }
-    else
-    {
-      pattern.second.push_back(c);
-      while (fread(&c, sizeof(char), 1, fd) == 1 && c != '\n')
-        pattern.second.push_back(c);
-    }
-  }
+  pattern_t out;
+  out.first = header;
+  std::copy(read.begin(), read.end(), std::back_inserter(out.second));
+  return out;
+}
 
-  if (pattern.second.size() > 0)
-    patterns.push_back(pattern);
-
-  fclose(fd);
-
-  return patterns;
+bool Patterns::end()
+{
+  return input_file.eof();
 }
 
 int main(int argc, char *const argv[])
@@ -82,7 +73,6 @@ int main(int argc, char *const argv[])
   parseArgs(argc, argv, args);
 
   // Building the r-index
-
   verbose("Building the matching statistics index");
   std::chrono::high_resolution_clock::time_point t_insert_start = std::chrono::high_resolution_clock::now();
 
@@ -105,56 +95,62 @@ int main(int argc, char *const argv[])
   verbose("Memory peak: ", malloc_count_peak());
   verbose("Elapsed time (s): ", std::chrono::duration<double, std::ratio<1>>(t_insert_end - t_insert_start).count());
 
-  verbose("Reading patterns");
-  t_insert_start = std::chrono::high_resolution_clock::now();
-
-  std::vector<pattern_t> patterns = read_patterns(args.patterns);
-
-  t_insert_end = std::chrono::high_resolution_clock::now();
-
   verbose("Memory peak: ", malloc_count_peak());
   verbose("Elapsed time (s): ", std::chrono::duration<double, std::ratio<1>>(t_insert_end - t_insert_start).count());
 
   verbose("Processing patterns");
   t_insert_start = std::chrono::high_resolution_clock::now();
 
-  std::ofstream f_pointers(args.patterns + ".pointers");
-  std::ofstream f_lengths(args.patterns + ".lengths");
-
-  if (!f_pointers.is_open())
-    error("open() file " + std::string(args.filename) + ".pointers failed");
-
-  if (!f_lengths.is_open())
-    error("open() file " + std::string(args.filename) + ".lengths failed");
-
-  for (auto pattern : patterns)
+#pragma omp parallel for schedule(static)
+  for (std::size_t i = 1; i <= 64; i++)
   {
-    auto pointers = ms.query(pattern.second);
-    std::vector<size_t> lengths(pointers.size());
-    size_t l = 0;
-    for (size_t i = 0; i < pointers.size(); ++i)
-    {
-      size_t pos = pointers[i];
-      while ((i + l) < pattern.second.size() && (pos + l) < ra.n && pattern.second[i + l] == ra.charAt(pos + l))
-        ++l;
+    std::string file_path = args.patterns + "_" + std::to_string(i) + ".fa";
 
-      lengths[i] = l;
-      l = (l == 0 ? 0 : (l - 1));
+    std::ofstream f_pointers(file_path + ".pointers");
+    std::ofstream f_lengths(file_path + ".lengths");
+
+    verbose("Working on: ", file_path);
+
+    if (!f_pointers.is_open())
+      error("open() file " + std::string(file_path) + ".pointers failed");
+
+    if (!f_lengths.is_open())
+      error("open() file " + std::string(file_path) + ".lengths failed");
+
+    Patterns patterns(file_path);
+
+    while (not patterns.end())
+    {
+      Patterns::pattern_t pattern = patterns.next();
+
+      auto pointers = ms.query(pattern.second);
+      std::vector<size_t> lengths(pointers.size());
+      size_t l = 0;
+
+      for (size_t i = 0; i < pointers.size(); ++i)
+      {
+        size_t pos = pointers[i];
+        while ((i + l) < pattern.second.size() && (pos + l) < ra.n && pattern.second[i + l] == ra.charAt(pos + l))
+          ++l;
+
+        lengths[i] = l;
+        l = (l == 0 ? 0 : (l - 1));
+      }
+
+      f_pointers << pattern.first << endl;
+      for (auto elem : pointers)
+        f_pointers << elem << " ";
+      f_pointers << endl;
+
+      f_lengths << pattern.first << endl;
+      for (auto elem : lengths)
+        f_lengths << elem << " ";
+      f_lengths << endl;
     }
 
-    f_pointers << pattern.first << endl;
-    for (auto elem : pointers)
-      f_pointers << elem << " ";
-    f_pointers << endl;
-
-    f_lengths << pattern.first << endl;
-    for (auto elem : lengths)
-      f_lengths << elem << " ";
-    f_lengths << endl;
+    f_pointers.close();
+    f_lengths.close();
   }
-
-  f_pointers.close();
-  f_lengths.close();
 
   t_insert_end = std::chrono::high_resolution_clock::now();
 
