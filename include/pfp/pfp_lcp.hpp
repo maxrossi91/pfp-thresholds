@@ -43,6 +43,8 @@ public:
     std::vector<size_t> pos_s;    // Position of the minimum lcp_T in each run of BWT_T
 
     uint8_t head;
+    size_t length = 0; // Length of the current run of BWT_T
+
     // std::vector<uint8_t> heads;
 
     pfp_lcp(pf_parsing &pfp_, std::string filename) : 
@@ -55,6 +57,18 @@ public:
         // Opening output files
         std::string outfile = filename + std::string(".lcp");
         if ((lcp_file = fopen(outfile.c_str(), "w")) == nullptr)
+            error("open() file " + outfile + " failed");
+
+        outfile = filename + std::string(".ssa");
+        if ((ssa_file = fopen(outfile.c_str(), "w")) == nullptr)
+            error("open() file " + outfile + " failed");
+
+        outfile = filename + std::string(".esa");
+        if ((esa_file = fopen(outfile.c_str(), "w")) == nullptr)
+            error("open() file " + outfile + " failed");
+
+        outfile = filename + std::string(".bwt");
+        if ((bwt_file = fopen(outfile.c_str(), "w")) == nullptr)
             error("open() file " + outfile + " failed");
 
         assert(pf.dict.d[pf.dict.saD[0]] == EndOfDict);
@@ -117,9 +131,12 @@ public:
                     first = false;
                     // Update min_s
                     print_lcp(lcp_suffix, j);
-                    
+
+                    update_ssa(curr, *curr_occ.first);
+
                     update_bwt(curr_occ.second.second, 1);
 
+                    update_esa(curr, *curr_occ.first);
                     // Update prevs
                     prev_occ = *curr_occ.first;
 
@@ -141,7 +158,14 @@ public:
                 inc(curr);
             }
         }
+        // print last BWT char and SA sample
+        print_sa();
+        print_bwt();
 
+        // Close output files
+        fclose(ssa_file);
+        fclose(esa_file);
+        fclose(bwt_file);
         fclose(lcp_file);
     }
 
@@ -158,7 +182,15 @@ private:
     
     size_t j = 0;
 
+    size_t ssa = 0;
+    size_t esa = 0;
+
     FILE *lcp_file;
+
+    FILE *bwt_file;
+
+    FILE *ssa_file;
+    FILE *esa_file;
 
     inline bool inc(phrase_suffix_t& s)
     {
@@ -240,20 +272,61 @@ private:
         pos_s.push_back(j);
     }
 
-    inline void update_bwt(uint8_t next_char, size_t length)
+    inline void update_ssa(phrase_suffix_t &curr, size_t pos)
+    {
+        ssa = (pf.pos_T[pos] - curr.suffix_length) % (pf.n - pf.w + 1ULL); // + pf.w;
+        assert(ssa < (pf.n - pf.w + 1ULL));
+    }
+
+    inline void update_esa(phrase_suffix_t &curr, size_t pos)
+    {
+        esa = (pf.pos_T[pos] - curr.suffix_length) % (pf.n - pf.w + 1ULL); // + pf.w;
+        assert(esa < (pf.n - pf.w + 1ULL));
+    }
+
+    inline void print_sa()
+    {
+        if (j < (pf.n - pf.w + 1ULL))
+        {
+            size_t pos = j;
+            if (fwrite(&pos, SSABYTES, 1, ssa_file) != 1)
+                error("SA write error 1");
+            if (fwrite(&ssa, SSABYTES, 1, ssa_file) != 1)
+                error("SA write error 2");
+        }
+
+        if (j > 0)
+        {
+            size_t pos = j - 1;
+            if (fwrite(&pos, SSABYTES, 1, esa_file) != 1)
+                error("SA write error 1");
+            if (fwrite(&esa, SSABYTES, 1, esa_file) != 1)
+                error("SA write error 2");
+        }
+    }
+
+    inline void print_bwt()
+    {   
+        for (size_t i = 0; i < length; ++i)
+        {
+            if (fputc(head, bwt_file) == EOF)
+                error("BWT write error 1");
+        }
+    }
+
+    inline void update_bwt(uint8_t next_char, size_t length_)
     {
         if (head != next_char)
+        {
+            print_sa();
+            print_bwt();
+
             head = next_char;
 
-        // if (heads.back() != next_char)
-        // {
-        //     heads.push_back(next_char);
-        //     // lengths.push_back(0); // Debug only
-        //     // Create the new min
-        //     new_min_s(pf.n+10, j);
-        // }
+            length = 0;
+        }
+        length += length_;
 
-        // lengths.back() += length; // Debug only
     }
 
 };
