@@ -225,11 +225,11 @@ def main():
     
     pfpds_thread = PFPthresholds(name = "{}".format(args.input), args=args, counter=1)  # ...Instantiate a thread and pass a unique ID to it
     pfpds_thread.start()                                       # ...Start the thread, invoke the run method
-    bwt_thread = BWT(name = "{}".format(args.input), args=args, counter=2)  # ...Instantiate a thread and pass a unique ID to it
-    bwt_thread.start()                                       # ...Start the thread, invoke the run method
+    # bwt_thread = BWT(name = "{}".format(args.input), args=args, counter=2)  # ...Instantiate a thread and pass a unique ID to it
+    # bwt_thread.start()                                       # ...Start the thread, invoke the run method
 
     pfpds_thread.join()
-    bwt_thread.join()
+    # bwt_thread.join()
 
     print("Total construction time: {0:.4f}".format(time.time()-start0))
     # ---- print elapsed time to file

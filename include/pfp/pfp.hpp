@@ -49,6 +49,8 @@ public:
   std::vector<size_t> s_lcp_T; // LCP array of T sampled in corrispondence of the beginning of each phrase.
   sdsl::rmq_succinct_sct<> rmq_s_lcp_T;
   
+  std::vector<size_t> pos_T; // for each suffix of P we store the starting posiion of that suffix in T.
+
   // std::vector<int_t>  ilist;            // Inverted list of phrases of P in BWT_P
   // sdsl::bit_vector ilist_s; // The ith 1 is in correspondence of the first occurrence of the ith phrase
   // sdsl::bit_vector::select_1_type select_ilist_s;
@@ -70,6 +72,7 @@ public:
             pars(p_, dict.n_phrases() + 1),
             // freq(freq_),
             s_lcp_T(1,0),
+            pos_T(1,0),
             // ilist(pars.p.size()),
             // ilist_s(pars.p.size()+ 1, 0),
             w(w_)
@@ -89,6 +92,7 @@ public:
               pars(filename,dict.n_phrases()+1),
               // freq(),
               s_lcp_T(1,0),
+              pos_T(1,0),
               // ilist(pars.p.size()),
               // ilist_s(pars.p.size()+ 1, 0),
               w(w_)
@@ -97,10 +101,15 @@ public:
     // Compute the length of the string;
     compute_n();
 
+    verbose("Computing pos_T");
+    _elapsed_time(compute_pos_T());
+
     verbose("Computing s_lcp_T");
     _elapsed_time(compute_s_lcp_T());
 
-    // print_sizes();
+    print_sizes();
+
+    print_stats();
 
     // Clear unnecessary elements
     clear_unnecessary_elements();
@@ -132,13 +141,24 @@ public:
     verbose("PFP");
     verbose("Size of s_lcp_T: ", s_lcp_T.size() * sizeof(s_lcp_T[0]));
     verbose("Size of rmq_s_lcp_T: ", sdsl::size_in_bytes(rmq_s_lcp_T));
+    verbose("Size of pos_T: ", pos_T.size() * sizeof(pos_T[0]));
+
+  }
+
+  void print_stats()
+  {
+
+    verbose("Text length: ", n);
+    verbose("Parse length: ", pars.p.size());
+    verbose("Dictionary length: ", dict.d.size());
+    verbose("Number of phrases: ", dict.n_phrases());
 
   }
 
   void compute_n(){
     // Compute the length of the string;
     n = 0;
-    for (int j = 0; j < pars.p.size() - 1; ++j)
+    for (size_t j = 0; j < pars.p.size() - 1; ++j)
     {
       // parse.p[j]: phrase_id
       assert(pars.p[j] != 0);
@@ -146,6 +166,24 @@ public:
     }
     //n += w; // + w because n is the length including the last w markers
     //n += w - 1; // Changed after changind b_d in dict // -1 is for the first dollar + w because n is the length including the last w markers
+  }
+
+  void compute_pos_T(){
+    std::vector<size_t> poss(pars.p.size(),0);
+    for (size_t j = 1; j < pars.p.size(); ++j)
+    {
+      poss[j] = poss[j-1] + dict.length_of_phrase(pars.p[j-1]) - w;
+    }
+
+    pos_T.resize(pars.p.size(), 0);
+    for (size_t j = 0; j < pars.p.size(); ++j)
+    {
+      size_t pos = poss[pars.saP[j]];
+      if(pos == 0)
+        pos = n - w;
+      pos_T[j] = pos;
+    }
+
   }
 
   // Return the frequency of the phrase

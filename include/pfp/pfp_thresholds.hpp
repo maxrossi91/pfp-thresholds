@@ -43,6 +43,7 @@ public:
     size_t pos_s; // Position of the minimum lcp_T in the current run of BWT_T
 
     uint8_t head; // Head of the current run of BWT_T
+    size_t  length = 0; // Length of the current run of BWT_T
 
     pfp_thresholds(pf_parsing &pfp_, std::string filename) : 
                 pf(pfp_),
@@ -62,6 +63,18 @@ public:
         if ((thr_pos_file = fopen(outfile.c_str(), "w")) == nullptr)
             error("open() file " + outfile + " failed");
 
+        outfile = filename + std::string(".ssa");
+        if ((ssa_file = fopen(outfile.c_str(), "w")) == nullptr)
+            error("open() file " + outfile + " failed");
+
+        outfile = filename + std::string(".esa");
+        if ((esa_file = fopen(outfile.c_str(), "w")) == nullptr)
+            error("open() file " + outfile + " failed");
+
+        outfile = filename + std::string(".bwt");
+        if ((bwt_file = fopen(outfile.c_str(), "w")) == nullptr)
+            error("open() file " + outfile + " failed");
+
         assert(pf.dict.d[pf.dict.saD[0]] == EndOfDict);
 
         phrase_suffix_t curr;
@@ -77,6 +90,9 @@ public:
 
                 bool same_chars = true;
 
+                init_first_last_occ();
+                update_first_last_occ(curr);
+
                 phrase_suffix_t next = curr;
 
                 while (inc(next) && (pf.dict.lcpD[next.i] >= curr.suffix_length))
@@ -89,6 +105,8 @@ public:
                         same_chars = (same_chars && same_suffix.back().bwt_char == next.bwt_char);
 
                         same_suffix.push_back(next);
+
+                        update_first_last_occ(next);
                     }
 
                 }
@@ -96,6 +114,8 @@ public:
                 // Simple case
                 if (same_chars)
                 {
+
+                    update_ssa(same_suffix[0], first_occ);
 
                     for (auto curr : same_suffix)
                     {
@@ -106,25 +126,18 @@ public:
                         // Update min_s
                         update_min_s(lcp_suffix,j);
 
+
                         update_bwt(curr.bwt_char, pf.get_freq(curr.phrase));
                         update_min_s(lcp_suffix,j);
 
-                        // // get min_s_P using rmq_s_lcp_T
-                        // size_t left = pf.pars.select_ilist_s(curr.phrase + 1);
-                        // size_t right = pf.pars.select_ilist_s(curr.phrase + 2) - 1;
-                        // if (left < right && lcp_suffix >= curr.suffix_length)
-                        // {
-                        //     size_t pos_s_P = pf.rmq_s_lcp_T(left + 1, right);
-                        //     size_t min_s_P = pf.s_lcp_T[pos_s_P] + curr.suffix_length - pf.dict.length_of_phrase(curr.phrase);
-                        //     // Update current min
-                        //     update_min_s(min_s_P, j + pos_s_P - left);
-                        // }
 
                         // Update prevs
                         prev = curr;
 
                         j += pf.get_freq(curr.phrase);
                     }
+
+                    update_esa(same_suffix[0], last_occ);
                 }
                 else
                 {
@@ -161,10 +174,13 @@ public:
                         first = false;
                         // Update min_s
                         update_min_s(lcp_suffix, j);
-                        
+
+                        update_ssa(curr, *curr_occ.first);
+
                         update_bwt(curr_occ.second.second, 1);
                         update_min_s(lcp_suffix, j);
 
+                        update_esa(curr, *curr_occ.first);
                         // Update prevs
                         prev_occ = *curr_occ.first;
 
@@ -187,9 +203,16 @@ public:
             }
         }
 
+        // print lat BWT char and SA sample
+        print_sa();
+        print_bwt();
+
         // Close output files
         fclose(thr_file);
         fclose(thr_pos_file);
+        fclose(ssa_file);
+        fclose(esa_file);
+        fclose(bwt_file);
     }
 
 private:
@@ -205,9 +228,20 @@ private:
     
     size_t j = 0;
 
+    size_t first_occ = pf.n; // First occurrence of same suffix phrases in BWT_P
+    size_t last_occ = 0;     // Last occurrence of same suffix phrases in BWT_P
+
+    size_t ssa = 0;
+    size_t esa = 0;
+
     std::vector<uint64_t> thresholds;
     std::vector<uint64_t> thresholds_pos;
     std::vector<bool> never_seen;
+
+    FILE *bwt_file;
+
+    FILE *ssa_file;
+    FILE *esa_file;
 
     FILE *thr_file;
     FILE *thr_pos_file;
@@ -294,24 +328,104 @@ private:
         pos_s = j;
     }
 
-    inline void update_bwt(uint8_t next_char, size_t length)
+    inline void update_ssa(phrase_suffix_t &curr, size_t pos)
+    {
+        ssa = (pf.pos_T[pos] - curr.suffix_length) % (pf.n - pf.w + 1ULL); // + pf.w;
+        assert(ssa < (pf.n - pf.w + 1ULL));
+    }
+
+    inline void update_esa(phrase_suffix_t &curr, size_t pos)
+    {
+        esa = (pf.pos_T[pos] - curr.suffix_length)% (pf.n - pf.w + 1ULL);// + pf.w;
+        assert(esa < (pf.n - pf.w + 1ULL));
+    }
+
+    inline void print_sa()
+    {
+        if (j < (pf.n - pf.w + 1ULL))
+        {
+            size_t pos = j;
+            if (fwrite(&pos, SSABYTES, 1, ssa_file) != 1)
+                error("SA write error 1");
+            if (fwrite(&ssa, SSABYTES, 1, ssa_file) != 1)
+                error("SA write error 2");
+        }
+
+        if(j > 0)
+        {
+            size_t pos = j-1;
+            if (fwrite(&pos, SSABYTES, 1, esa_file) != 1)
+                error("SA write error 1");
+            if (fwrite(&esa, SSABYTES, 1, esa_file) != 1)
+                error("SA write error 2");
+        }
+
+    }
+
+    inline void print_bwt()
+    {
+        if(length > 0)
+        {
+            for(size_t i = 0; i < length; ++i)
+            {
+                if (fputc(head, bwt_file) == EOF)
+                    error("BWT write error 1");
+            }
+            // uint8_t* run = new uint8_t[length];
+            // memset(run,head,length);
+
+            // if (fwrite(run, 1, length, bwt_file) != length)
+            //     error("BWT write error 1");
+
+            // delete run;
+        }
+
+    }
+
+    inline void update_bwt(uint8_t next_char, size_t length_)
     {
         if (head != next_char)
         {
             // Print threshold
             print_threshold(next_char);
+            print_sa();
+            print_bwt();
+
             head = next_char;
             // lengths.push_back(0); // Debug only
+            length = 0; // Debug only
             // Create the new min
             new_min_s(pf.n + 10, j);
         }
 
+        length += length_;
         // lengths.back() += length; // Debug only
     }
 
+    inline void init_first_last_occ()
+    {
+        first_occ = pf.n; // First occurrence of same suffix phrases in BWT_P
+        last_occ = 0;     // Last occurrence of same suffix phrases in BWT_P
+    }
 
+    inline void update_first_last_occ(phrase_suffix_t &curr) 
+    {
+        size_t begin = pf.pars.select_ilist_s(curr.phrase + 1);
+        size_t end = pf.pars.select_ilist_s(curr.phrase + 2) - 1;
 
-    inline void print_threshold(uint8_t next_char){
+        size_t first = pf.pars.ilist[begin];
+        size_t last  = pf.pars.ilist[end];
+
+        if(first_occ > first)
+            first_occ = first;
+
+        if(last_occ < last)
+            last_occ = last;
+    }
+    
+    
+    inline void print_threshold(uint8_t next_char)
+    {
 
         // Update thresholds
         for (auto character: pf.dict.alphabet)
@@ -332,22 +446,21 @@ private:
             // Write a zero so the positions of thresholds and BWT runs are the same
             size_t zero = 0;
             if (fwrite(&zero, THRBYTES, 1, thr_file) != 1)
-                error("SA write error 1");
+                error("THR write error 1");
             if (fwrite(&zero, THRBYTES, 1, thr_pos_file) != 1)
-                error("SA write error 1");
+                error("THR write error 2");
         }
         else
         {
             if (fwrite(&thresholds[next_char], THRBYTES, 1, thr_file) != 1)
-                error("SA write error 1");
+                error("THR write error 3");
             if (fwrite(&thresholds_pos[next_char], THRBYTES, 1, thr_pos_file) != 1)
-                error("SA write error 1");
+                error("THR write error 4");
         }
 
 
         thresholds[next_char] = pf.n;
     }
-
 };
 
 #endif /* end of include guard: _THRESHOLDS_PFP_HH */
