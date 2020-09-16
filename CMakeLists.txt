@@ -16,6 +16,9 @@ SET(VERSION_MINOR "1")
 SET(VERSION_PATCH "0")
 SET(VERSION "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}")
 
+option(COMPILE_BENCHMARKS "Set ON to compile the benchmarks" OFF)
+option(COMPILE_TESTS "Set ON to compile the tests" OFF)
+
 # Set environment
 # ------------------------------------------------------------------------------
 set(CMAKE_INSTALL_PREFIX ${CMAKE_BINARY_DIR}/install)
@@ -49,11 +52,13 @@ else ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
 	message(FATAL_ERROR "Only the compiler gcc and clang are supported")
 endif()
 
-
 add_subdirectory(include)
 add_subdirectory(test)
 add_subdirectory(utils)
-add_subdirectory(benchmarks/src)
+
+if(${COMPILE_BENCHMARKS})
+  add_subdirectory(benchmarks/src)
+endif()
 
 configure_file(${PROJECT_SOURCE_DIR}/pipeline/pfp_thresholds ${PROJECT_BINARY_DIR}/pfp_thresholds)
 configure_file(${PROJECT_SOURCE_DIR}/pipeline/bwt_lcp_thresholds ${PROJECT_BINARY_DIR}/bwt_lcp_thresholds)
