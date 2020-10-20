@@ -74,8 +74,8 @@ public :
         j = rb;
         p2 = p2 - 1;
 
-        pointers[p2 + 1] = cst->sn(cst->node(i, i));
-        lengths[p2 + 1] = q;
+        pointers[p2] = cst->sn(cst->node(i, i));
+        lengths[p2] = q;
       }
       else if (i == 0 and j == cst->csa.size())
       {

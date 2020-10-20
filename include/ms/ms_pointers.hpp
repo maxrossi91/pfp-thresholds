@@ -223,7 +223,7 @@ public:
 
                     // Here we should use Phi_inv that is not implemented yet
                     // sample = this->Phi(this->samples_last[run_of_j - 1]) - 1;
-                    sample = samples_start[run_of_j];
+                    sample = samples_start[run_of_j] - 1;
 
                     next_pos = j;
                 }
@@ -234,7 +234,7 @@ public:
                     rnk--;
                     ri::ulint j = this->bwt.select(rnk, c);
                     ri::ulint run_of_j = this->bwt.run_of_position(j);
-                    sample = this->samples_last[run_of_j];
+                    sample = this->samples_last[run_of_j] - 1;
 
                     next_pos = j;
                 }
