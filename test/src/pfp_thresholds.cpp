@@ -73,7 +73,7 @@ int main(int argc, char* const argv[]) {
 
   // This code gets timed
 
-  pfp_thresholds thr(pf, args.filename);
+  pfp_thresholds thr(pf, args.filename, args.rle);
 
   // Building the sampled LCP array of T in corrispondence of the beginning of each phrase.
   // verbose("Building the thresholds - sampled LCP");

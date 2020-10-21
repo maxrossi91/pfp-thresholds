@@ -57,7 +57,8 @@
 //******************************************************************************
 
 #define THRBYTES 5 // The number of bytes for the thresholds
-#define SSABYTES 5 // The number of bytes for the thresholds
+#define SSABYTES 5 // The number of bytes for the suffix array samples
+#define BWTBYTES 5 // The number of bytes for the bwt lengths
 
 std::string NowTime();
 void _internal_messageInfo(const std::string message);
@@ -331,6 +332,7 @@ struct Args
   bool store = false; // store the data structure in the file
   bool memo  = false; // print the memory usage
   bool csv   = false; // print stats on stderr in csv format
+  bool rle   = false; // outut RLEBWT
   std::string patterns = ""; // path to patterns file
   bool is_fasta = false; // read a fasta file
 };
@@ -341,17 +343,18 @@ void parseArgs(int argc, char *const argv[], Args &arg)
   extern char *optarg;
   extern int optind;
 
-  std::string usage("usage: " + std::string(argv[0]) + " infile [-s store] [-m memo] [-c csv] [-p patterns] [-f fasta]\n\n" +
+  std::string usage("usage: " + std::string(argv[0]) + " infile [-s store] [-m memo] [-c csv] [-p patterns] [-f fasta] [-r rle]\n\n" +
                     "Computes the pfp data structures of infile, provided that infile.parse, infile.dict, and infile.occ exists.\n" +
                     "  wsize: [integer] - sliding window size (def. 10)\n" +
                     "  store: [boolean] - store the data structure in infile.pfp.ds. (def. false)\n" +
                     "   memo: [boolean] - print the data structure memory usage. (def. false)\n" +
                     "  fasta: [boolean] - the input file is a fasta file. (def. false)\n" +
+                    "    rle: [boolean] - output run length encoded BWT. (def. false)\n" +
                     "pattens: [string]  - path to patterns file.\n" +
                     "    csv: [boolean] - print the stats in csv form on strerr. (def. false)\n");
 
   std::string sarg;
-  while ((c = getopt(argc, argv, "w:smcfhp:")) != -1)
+  while ((c = getopt(argc, argv, "w:smcfrhp:")) != -1)
   {
     switch (c)
     {
@@ -367,6 +370,9 @@ void parseArgs(int argc, char *const argv[], Args &arg)
       break;
     case 'c':
       arg.csv = true;
+      break;
+    case 'r':
+      arg.rle = true;
       break;
     case 'p':
       arg.patterns.assign(optarg);

@@ -45,14 +45,17 @@ public:
     uint8_t head; // Head of the current run of BWT_T
     size_t  length = 0; // Length of the current run of BWT_T
 
-    pfp_thresholds(pf_parsing &pfp_, std::string filename) : 
+    bool rle;
+
+    pfp_thresholds(pf_parsing &pfp_, std::string filename, bool rle_ = false) : 
                 pf(pfp_),
                 min_s(pf.n),
                 pos_s(0),
                 head(0),
                 thresholds(256, pf.n),
                 thresholds_pos(256, 0),
-                never_seen(256, true)
+                never_seen(256, true),
+                rle(rle_)
     {
         // Opening output files
         std::string outfile = filename + std::string(".thr");
@@ -71,9 +74,23 @@ public:
         if ((esa_file = fopen(outfile.c_str(), "w")) == nullptr)
             error("open() file " + outfile + " failed");
 
-        outfile = filename + std::string(".bwt");
-        if ((bwt_file = fopen(outfile.c_str(), "w")) == nullptr)
-            error("open() file " + outfile + " failed");
+        if(rle)
+        {
+            outfile = filename + std::string(".bwt.pos");
+            if ((bwt_file = fopen(outfile.c_str(), "w")) == nullptr)
+                error("open() file " + outfile + " failed");
+
+            outfile = filename + std::string(".bwt.len");
+            if ((bwt_file_len = fopen(outfile.c_str(), "w")) == nullptr)
+                error("open() file " + outfile + " failed");
+
+        }else{
+
+            outfile = filename + std::string(".bwt");
+            if ((bwt_file = fopen(outfile.c_str(), "w")) == nullptr)
+                error("open() file " + outfile + " failed");
+
+        }
 
         assert(pf.dict.d[pf.dict.saD[0]] == EndOfDict);
 
@@ -213,6 +230,8 @@ public:
         fclose(ssa_file);
         fclose(esa_file);
         fclose(bwt_file);
+        if(rle)
+            fclose(bwt_file_len);
     }
 
 private:
@@ -239,6 +258,7 @@ private:
     std::vector<bool> never_seen;
 
     FILE *bwt_file;
+    FILE *bwt_file_len;
 
     FILE *ssa_file;
     FILE *esa_file;
@@ -366,18 +386,31 @@ private:
     {
         if(length > 0)
         {
-            for(size_t i = 0; i < length; ++i)
+            if(rle)
             {
+                // Write the head
                 if (fputc(head, bwt_file) == EOF)
                     error("BWT write error 1");
+                
+                // Write the length
+                if (fwrite(&length, BWTBYTES, 1, bwt_file_len) != 1)
+                    error("BWT write error 2");
+            }else{
+
+                for(size_t i = 0; i < length; ++i)
+                {
+                    if (fputc(head, bwt_file) == EOF)
+                        error("BWT write error 1");
+                }
+                // uint8_t* run = new uint8_t[length];
+                // memset(run,head,length);
+
+                // if (fwrite(run, 1, length, bwt_file) != length)
+                //     error("BWT write error 1");
+
+                // delete run;
             }
-            // uint8_t* run = new uint8_t[length];
-            // memset(run,head,length);
 
-            // if (fwrite(run, 1, length, bwt_file) != length)
-            //     error("BWT write error 1");
-
-            // delete run;
         }
 
     }
