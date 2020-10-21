@@ -61,7 +61,7 @@ std::vector<size_t> cst_matching_statistics(const Cst &cst, unsigned char *S2, t
       j = rb;
       p2 = p2 - 1;
 
-      lengths[p2] = q;
+      lengths[p2 + 1] = q;
     }
     else if (i == 0 and j == cst.csa.size())
     {
