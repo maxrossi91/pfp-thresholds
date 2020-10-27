@@ -62,7 +62,7 @@ public:
 
     typedef size_t size_type;
 
-    ms_pointers(std::string filename) : 
+    ms_pointers(std::string filename, bool rle = false) : 
         ri::r_index<sparse_bv_type, rle_string_t>()
     {
         verbose("Building the r-index from BWT");
@@ -72,8 +72,27 @@ public:
         std::string bwt_fname = filename + ".bwt";
 
         verbose("RLE encoding BWT and computing SA samples");
-        std::ifstream ifs(bwt_fname);
-        this->bwt = rle_string_t(ifs); 
+
+        if(rle)
+        {
+            std::string bwt_heads_fname = bwt_fname + ".heads";
+            std::ifstream ifs_heads(bwt_heads_fname);
+            std::string bwt_len_fname = bwt_fname + ".len";
+            std::ifstream ifs_len(bwt_len_fname);
+            this->bwt = rle_string_t(ifs_heads, ifs_len);
+
+            ifs_heads.seekg(0);
+            ifs_len.seekg(0);
+            this->build_F_(ifs_heads, ifs_len);
+        }
+        else
+        {
+            std::ifstream ifs(bwt_fname);
+            this->bwt = rle_string_t(ifs);
+
+            ifs.seekg(0);
+            this->build_F(ifs);
+        }
         // std::string istring;
         // read_file(bwt_fname.c_str(), istring);
         // for(size_t i = 0; i < istring.size(); ++i)
@@ -91,8 +110,6 @@ public:
         verbose("log2(r) = " , log2(double(this->r)));
         verbose("log2(n/r) = " , log2(double(this->bwt.size()) / this->r));
 
-        ifs.seekg(0);
-        this->build_F(ifs);
         // this->build_F(istring);
         // istring.clear();
         // istring.shrink_to_fit();
@@ -179,6 +196,37 @@ public:
         }
 
         fclose(fd);
+    }
+
+    vector<ulint> build_F_(std::ifstream &heads, std::ifstream &lengths)
+    {
+        heads.clear();
+        heads.seekg(0);
+        lengths.clear();
+        lengths.seekg(0);
+
+        this->F = vector<ulint>(256, 0);
+        int c;
+        ulint i = 0;
+        while ((c = heads.get()) != EOF)
+        {
+            size_t length;
+            lengths.read((char *)&length, 5);
+            if (c > TERMINATOR)
+                this->F[c]+=length;
+            else
+            {
+                this->F[TERMINATOR]+=length;
+                this->terminator_position = i;
+            }
+            i++;
+        }
+        for (ulint i = 255; i > 0; --i)
+            this->F[i] = this->F[i - 1];
+        this->F[0] = 0;
+        for (ulint i = 1; i < 256; ++i)
+            this->F[i] += this->F[i - 1];
+        return this->F;
     }
 
     // Computes the matching statistics pointers for the given pattern

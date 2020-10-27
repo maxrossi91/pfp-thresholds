@@ -76,7 +76,7 @@ public:
 
         if(rle)
         {
-            outfile = filename + std::string(".bwt.pos");
+            outfile = filename + std::string(".bwt.heads");
             if ((bwt_file = fopen(outfile.c_str(), "w")) == nullptr)
                 error("open() file " + outfile + " failed");
 
