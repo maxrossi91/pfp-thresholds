@@ -63,3 +63,10 @@ if(${COMPILE_TESTS})
     target_include_directories(pfp_ms_test PUBLIC "../../include/pfp")
     target_include_directories(pfp_ms_test PUBLIC "../../benchmarks/src")
 endif()
+
+
+add_executable(ms_rle_string_test ms_rle_string_test.cpp)
+target_link_libraries(ms_rle_string_test common gsacak sdsl divsufsort divsufsort64 malloc_count ri benchmark pthread gtest_main)
+target_include_directories(ms_rle_string_test PUBLIC "../../include/ms")
+target_include_directories(ms_rle_string_test PUBLIC "../../include/pfp")
+target_include_directories(ms_rle_string_test PUBLIC "../../benchmarks/src")
