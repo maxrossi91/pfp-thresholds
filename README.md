@@ -45,13 +45,17 @@ make
 
 ## Authors 
 
-Theoretical results:
+### Theoretical results:
 
 * Christina Boucher
 * Travis Gagie
 * Massimiliano Rossi
 
-Implementation:
+### Implementation:
+
+* Massimiliano Rossi
+
+### Experiments:
 
 * Massimiliano Rossi
 * Marco Oliva
