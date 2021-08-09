@@ -52,6 +52,7 @@ public:
                 min_s(pf.n),
                 pos_s(0),
                 head(0),
+                sa_mod(pf.n - pf.w + 1ULL),
                 thresholds(256, pf.n),
                 thresholds_pos(256, 0),
                 never_seen(256, true),
@@ -250,6 +251,8 @@ private:
     size_t first_occ = pf.n; // First occurrence of same suffix phrases in BWT_P
     size_t last_occ = 0;     // Last occurrence of same suffix phrases in BWT_P
 
+    const size_t sa_mod = (pf.n - pf.w + 1ULL);
+
     size_t ssa = 0;
     size_t esa = 0;
 
@@ -350,13 +353,15 @@ private:
 
     inline void update_ssa(phrase_suffix_t &curr, size_t pos)
     {
-        ssa = (pf.pos_T[pos] - curr.suffix_length) % (pf.n - pf.w + 1ULL); // + pf.w;
+        ssa = (sa_mod + pf.pos_T[pos] - curr.suffix_length) % (sa_mod); // + pf.w;
+        // ssa = (pf.pos_T[pos] - curr.suffix_length) % (pf.n - pf.w + 1ULL); // + pf.w;
         assert(ssa < (pf.n - pf.w + 1ULL));
     }
 
     inline void update_esa(phrase_suffix_t &curr, size_t pos)
     {
-        esa = (pf.pos_T[pos] - curr.suffix_length)% (pf.n - pf.w + 1ULL);// + pf.w;
+        esa = (sa_mod + pf.pos_T[pos] - curr.suffix_length)% (sa_mod);// + pf.w;
+        // esa = (pf.pos_T[pos] - curr.suffix_length)% (pf.n - pf.w + 1ULL);// + pf.w;
         assert(esa < (pf.n - pf.w + 1ULL));
     }
 
