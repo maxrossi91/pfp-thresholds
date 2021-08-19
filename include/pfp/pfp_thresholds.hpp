@@ -352,7 +352,7 @@ private:
     }
 
     inline void update_ssa(phrase_suffix_t &curr, size_t pos)
-    {
+    {   // We do not need to add w because pf.pos_T has w character more at the beginning
         ssa = (sa_mod + pf.pos_T[pos] - curr.suffix_length) % (sa_mod); // + pf.w;
         // ssa = (pf.pos_T[pos] - curr.suffix_length) % (pf.n - pf.w + 1ULL); // + pf.w;
         assert(ssa < (pf.n - pf.w + 1ULL));
