@@ -180,7 +180,7 @@ public:
     {
       size_t pos = poss[pars.saP[j]];
       if(pos == 0)
-        pos = n - w;
+        pos = n; // - w;
       pos_T[j] = pos;
     }
 
