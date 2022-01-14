@@ -122,25 +122,6 @@ add_library(divsufsort64 STATIC IMPORTED GLOBAL)
 set_property(TARGET divsufsort64 PROPERTY IMPORTED_LOCATION ${DIVSUFSORT64_LIB})
 
 
-if(${COMPILE_BENCHMARKS})
-
-  ## Google benchmark
-  FetchContent_Declare(
-    benchmark
-    GIT_REPOSITORY https://github.com/google/benchmark.git
-    GIT_TAG        main
-    )
-    
-  FetchContent_GetProperties(benchmark)
-  if(NOT benchmark_POPULATED)
-    FetchContent_Populate(benchmark)
-    set(BENCHMARK_ENABLE_TESTING OFF CACHE BOOL "Enable testing of the benchmark library." FORCE)
-    add_subdirectory(${benchmark_SOURCE_DIR} ${benchmark_BINARY_DIR} EXCLUDE_FROM_ALL)
-  endif()
-
-endif()
-
-
 
 if(${COMPILE_BWT2LCP})
   ## Add rlbwt2lcp
