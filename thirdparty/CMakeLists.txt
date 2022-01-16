@@ -1,5 +1,6 @@
 # Thirdparty libraries
 include(FetchContent)
+include(FetchContent_Install)
 
 # Log directory for external content builds
 make_directory(${CMAKE_CURRENT_BINARY_DIR}/logs)
@@ -27,20 +28,6 @@ if(NOT malloc_count_POPULATED)
   add_library(memprofile OBJECT ${malloc_count_SOURCE_DIR}/memprofile.h)
   target_include_directories(memprofile PUBLIC "${malloc_count_SOURCE_DIR}")
 endif()
-
-
-## Add Big-BWT
-FetchContent_Declare(
-  bigbwt
-  GIT_REPOSITORY https://github.com/alshai/Big-BWT.git
-  )
-  
-FetchContent_GetProperties(bigbwt)
-if(NOT bigbwt_POPULATED)
-  FetchContent_Populate(bigbwt)
-  add_subdirectory(${bigbwt_SOURCE_DIR} ${bigbwt_BINARY_DIR})
-
-endif()
   
 ## Add gsacak
 FetchContent_Declare(
@@ -58,8 +45,6 @@ if(NOT gsacak_POPULATED)
     target_include_directories(gsacak64 PUBLIC "${gsacak_SOURCE_DIR}")
     target_compile_options(gsacak64 PUBLIC -DM64)
 endif()
-
-
 
 # DIVSUFSORT
 find_library(DIVSUFSORT_LIB divsufsort HINTS ${CMAKE_CURRENT_BINARY_DIR}/lib PATHS ${CONDA_PREFIX}/lib)
@@ -121,6 +106,90 @@ set_property(TARGET divsufsort PROPERTY IMPORTED_LOCATION ${DIVSUFSORT_LIB})
 add_library(divsufsort64 STATIC IMPORTED GLOBAL)
 set_property(TARGET divsufsort64 PROPERTY IMPORTED_LOCATION ${DIVSUFSORT64_LIB})
 
+# HTSLIB
+find_library(HTS_LIB hts)
+find_path(HTS_SRC htslib)
+if(NOT HTS_LIB)
+    message(STATUS "htslib library not found. Building as an external content.")
+    FetchContent_Declare(htslib
+            GIT_REPOSITORY "https://github.com/samtools/htslib"
+            GIT_TAG "1.14"
+    )
+
+    if(NOT htslib_POPULATED)
+        FetchContent_Populate(htslib)
+        # Install in the current binary dir
+        execute_process(COMMAND autoreconf -i
+                RESULT_VARIABLE result
+                WORKING_DIRECTORY ${htslib_SOURCE_DIR} 
+                OUTPUT_FILE ${CMAKE_CURRENT_BINARY_DIR}/logs/htslib-autoreconf.log
+                ERROR_FILE ${CMAKE_CURRENT_BINARY_DIR}/logs/htslib-autoreconf.log)
+        if(result)
+            message(FATAL_ERROR "CMake step for htslib failed: ${result}")
+        endif()
+
+        execute_process(COMMAND ./configure --prefix=${CMAKE_CURRENT_BINARY_DIR}
+                RESULT_VARIABLE result
+                WORKING_DIRECTORY ${htslib_SOURCE_DIR} 
+                OUTPUT_FILE ${CMAKE_CURRENT_BINARY_DIR}/logs/htslib-configure.log
+                ERROR_FILE ${CMAKE_CURRENT_BINARY_DIR}/logs/htslib-configure.log)
+        if(result)
+            message(FATAL_ERROR "CMake step for htslib failed: ${result}")
+        endif()
+
+        execute_process(COMMAND make
+                RESULT_VARIABLE result
+                WORKING_DIRECTORY ${htslib_SOURCE_DIR} 
+                OUTPUT_FILE ${CMAKE_CURRENT_BINARY_DIR}/logs/htslib-make.log
+                ERROR_FILE ${CMAKE_CURRENT_BINARY_DIR}/logs/htslib-make.log)
+        if(result)
+            message(FATAL_ERROR "CMake step for htslib failed: ${result}")
+        endif()
+
+        execute_process(COMMAND make install
+                RESULT_VARIABLE result
+                WORKING_DIRECTORY ${htslib_SOURCE_DIR} 
+                OUTPUT_FILE ${CMAKE_CURRENT_BINARY_DIR}/logs/htslib-install.log
+                ERROR_FILE ${CMAKE_CURRENT_BINARY_DIR}/logs/htslib-install.log)
+        if(result)
+            message(FATAL_ERROR "CMake step for htslib failed: ${result}")
+        endif()
+    endif()
+
+    set(HTS_SRC ${CMAKE_CURRENT_BINARY_DIR}/include)
+    set(HTS_LIB ${CMAKE_CURRENT_BINARY_DIR}/lib/libsdsl.a)
+
+else()
+    message(STATUS "htslib library found at ${HTS_LIB}.")
+    message(STATUS "htslib sources found at ${HTS_SRC}.")
+endif()
+
+add_library(htslib STATIC IMPORTED GLOBAL)
+set_property(TARGET htslib PROPERTY IMPORTED_LOCATION ${HTS_LIB})
+target_include_directories(htslib INTERFACE ${HTS_SRC})
+
+# PFP++
+find_program(PFP pfp++)
+if(NOT PFP)
+    message(STATUS "pfp not found. Building as an external content.")
+    FetchContent_Declare(pfp
+            GIT_REPOSITORY "https://github.com/maxrossi91/pfp"
+            GIT_TAG leviosam_integration
+    )
+
+    if(NOT pfp_POPULATED)
+        FetchContent_Populate(pfp)
+        FetchContent_Install(   pfp  
+                                SOURCE ${pfp_SOURCE_DIR} 
+                                BINARY ${pfp_BINARY_DIR} 
+                                DESTINATION ${CMAKE_CURRENT_BINARY_DIR} 
+                                LOG ${CMAKE_CURRENT_BINARY_DIR}/logs)
+    endif()
+    set(PFP ${CMAKE_CURRENT_BINARY_DIR}/bin/pfp++)
+
+else()
+    message(STATUS "pfp found at ${PFP}.")
+endif()
 
 
 if(${COMPILE_BWT2LCP})

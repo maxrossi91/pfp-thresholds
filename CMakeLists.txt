@@ -27,7 +27,7 @@ set(CMAKE_INSTALL_PREFIX ${CMAKE_BINARY_DIR}/install)
 
 find_package(Git)
 if(GIT_FOUND)
-    message("git found: ${GIT_EXECUTABLE}")
+    message(STATUS "git found: ${GIT_EXECUTABLE}")
 else()
     message(WARNING "git not found. Cloning of submodules will not work.")
 endif()
@@ -57,7 +57,18 @@ add_subdirectory(include)
 add_subdirectory(test)
 add_subdirectory(utils)
 
-configure_file(${PROJECT_SOURCE_DIR}/pipeline/pfp_thresholds ${PROJECT_BINARY_DIR}/pfp_thresholds)
-configure_file(${PROJECT_SOURCE_DIR}/pipeline/bwt_lcp_thresholds ${PROJECT_BINARY_DIR}/bwt_lcp_thresholds)
-configure_file(${PROJECT_SOURCE_DIR}/pipeline/pfp_lcp ${PROJECT_BINARY_DIR}/pfp_lcp)
-configure_file(${PROJECT_SOURCE_DIR}/pipeline/bwt_lcp ${PROJECT_BINARY_DIR}/bwt_lcp)
+
+set(PFP_EXE ${PFP})
+set(PFP_THRESHOLDS_VERSION ${VERSION})
+# Configure pipeline for build folder
+set(USE_INSTALL_PATH False)
+configure_file(${PROJECT_SOURCE_DIR}/pipeline/thresholds.in ${PROJECT_BINARY_DIR}/thresholds @ONLY)
+
+# Configure pipeline for install folder
+set(USE_INSTALL_PATH True)
+configure_file(${PROJECT_SOURCE_DIR}/pipeline/thresholds.in ${PROJECT_BINARY_DIR}/thresholds.install @ONLY)
+
+if(${COMPILE_BWT2LCP})
+  configure_file(${PROJECT_SOURCE_DIR}/pipeline/bwt_lcp_thresholds ${PROJECT_BINARY_DIR}/bwt_lcp_thresholds)
+  configure_file(${PROJECT_SOURCE_DIR}/pipeline/bwt_lcp ${PROJECT_BINARY_DIR}/bwt_lcp)
+endif()
