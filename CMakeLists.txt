@@ -24,8 +24,6 @@ option(COMPILE_GSACAK "Set ON to compile the gsacak versions" OFF)
 
 # Set environment
 # ------------------------------------------------------------------------------
-set(CMAKE_INSTALL_PREFIX ${CMAKE_BINARY_DIR}/install)
-
 
 find_package(Git)
 if(GIT_FOUND)
