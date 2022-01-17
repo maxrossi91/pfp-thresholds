@@ -8,6 +8,8 @@ if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release CACHE STRING "Choose the type of build." FORCE)
 endif()
 
+message(STATUS "Install directory: ${CMAKE_INSTALL_PREFIX}")
+
 # About this project
 # ------------------------------------------------------------------------------
 project(PFP-thresholds)
@@ -72,3 +74,6 @@ if(${COMPILE_BWT2LCP})
   configure_file(${PROJECT_SOURCE_DIR}/pipeline/bwt_lcp_thresholds ${PROJECT_BINARY_DIR}/bwt_lcp_thresholds)
   configure_file(${PROJECT_SOURCE_DIR}/pipeline/bwt_lcp ${PROJECT_BINARY_DIR}/bwt_lcp)
 endif()
+
+install(TARGETS pfp_lcp pfp_lcp64 pfp_thresholds pfp_thresholds64 TYPE RUNTIME)
+install(PROGRAMS ${PROJECT_BINARY_DIR}/thresholds.install RENAME thresholds TYPE BIN)

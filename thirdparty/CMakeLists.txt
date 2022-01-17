@@ -4,6 +4,8 @@ include(FetchContent_Install)
 
 # Log directory for external content builds
 make_directory(${CMAKE_CURRENT_BINARY_DIR}/logs)
+set(INSTALL_FILE  ${CMAKE_CURRENT_BINARY_DIR}/install.cmake)
+
 
 # Set environment
 
@@ -69,7 +71,7 @@ if(NOT SDSL_LIB)
     message(STATUS "sdsl library not found. Building as an external content")
     FetchContent_Declare(sdsl
             GIT_REPOSITORY "https://github.com/simongog/sdsl-lite.git"
-            GIT_TAG "v2.1.1"
+            # GIT_TAG "v2.1.1"
     )
 
     if(NOT sdsl_POPULATED)
@@ -80,6 +82,12 @@ if(NOT SDSL_LIB)
                 WORKING_DIRECTORY ${sdsl_SOURCE_DIR} 
                 OUTPUT_FILE ${CMAKE_CURRENT_BINARY_DIR}/logs/sdsl.log
                 ERROR_FILE ${CMAKE_CURRENT_BINARY_DIR}/logs/sdsl.log)
+
+        file(APPEND ${INSTALL_FILE} "MESSAGE(STATUS \"Installing sdsl.\")\n")
+        file(APPEND ${INSTALL_FILE} "execute_process(COMMAND ./install.sh \${CMAKE_INSTALL_PREFIX}
+                WORKING_DIRECTORY ${sdsl_SOURCE_DIR} 
+                OUTPUT_FILE ${CMAKE_CURRENT_BINARY_DIR}/logs/sdsl.log
+                ERROR_FILE ${CMAKE_CURRENT_BINARY_DIR}/logs/sdsl.log)\n")
         if(result)
             message(FATAL_ERROR "CMake step for sdsl-lite failed: ${result}")
         endif()
@@ -154,10 +162,31 @@ if(NOT HTS_LIB)
         if(result)
             message(FATAL_ERROR "CMake step for htslib failed: ${result}")
         endif()
+
+        file(APPEND ${INSTALL_FILE} "MESSAGE(STATUS \"Installing htslib.\")\n
+                execute_process(COMMAND autoreconf -i
+                WORKING_DIRECTORY ${htslib_SOURCE_DIR} 
+                OUTPUT_FILE ${CMAKE_CURRENT_BINARY_DIR}/logs/htslib-autoreconf.log
+                ERROR_FILE ${CMAKE_CURRENT_BINARY_DIR}/logs/htslib-autoreconf.log)\n
+                execute_process(COMMAND ./configure --prefix=\${CMAKE_INSTALL_PREFIX}
+                WORKING_DIRECTORY ${htslib_SOURCE_DIR} 
+                OUTPUT_FILE ${CMAKE_CURRENT_BINARY_DIR}/logs/htslib-configure.log
+                ERROR_FILE ${CMAKE_CURRENT_BINARY_DIR}/logs/htslib-configure.log)\n
+                execute_process(COMMAND make
+                WORKING_DIRECTORY ${htslib_SOURCE_DIR} 
+                OUTPUT_FILE ${CMAKE_CURRENT_BINARY_DIR}/logs/htslib-make.log
+                ERROR_FILE ${CMAKE_CURRENT_BINARY_DIR}/logs/htslib-make.log)\n
+                execute_process(COMMAND make install
+                WORKING_DIRECTORY ${htslib_SOURCE_DIR} 
+                OUTPUT_FILE ${CMAKE_CURRENT_BINARY_DIR}/logs/htslib-install.log
+                ERROR_FILE ${CMAKE_CURRENT_BINARY_DIR}/logs/htslib-install.log)\n")
+
     endif()
 
     set(HTS_SRC ${CMAKE_CURRENT_BINARY_DIR}/include)
     set(HTS_LIB ${CMAKE_CURRENT_BINARY_DIR}/lib/libsdsl.a)
+
+
 
 else()
     message(STATUS "htslib library found at ${HTS_LIB}.")
@@ -183,10 +212,13 @@ if(NOT PFP)
                                 SOURCE ${pfp_SOURCE_DIR} 
                                 BINARY ${pfp_BINARY_DIR} 
                                 DESTINATION ${CMAKE_CURRENT_BINARY_DIR} 
-                                LOG ${CMAKE_CURRENT_BINARY_DIR}/logs)
-    endif()
-    set(PFP ${CMAKE_CURRENT_BINARY_DIR}/bin/pfp++)
+                                LOG ${CMAKE_CURRENT_BINARY_DIR}/logs
+                                FILE ${INSTALL_FILE})
 
+    endif()
+    set(PFP ${CMAKE_CURRENT_BINARY_DIR}/bin/pfp++ GLOBAL)
+
+    
 else()
     message(STATUS "pfp found at ${PFP}.")
 endif()
@@ -219,3 +251,5 @@ if(${COMPILE_BWT2LCP})
     add_subdirectory(${bwt2lcp_SOURCE_DIR} ${bwt2lcp_BINARY_DIR} )
   endif()
 endif()
+
+install(SCRIPT ${INSTALL_FILE})
