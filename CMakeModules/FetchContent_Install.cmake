@@ -42,7 +42,7 @@ function (FetchContent_Install target)
             OUTPUT_FILE ${MY_INSTALL_LOG}/${target}-install.log
             ERROR_FILE ${MY_INSTALL_LOG}/${target}-install.log)
     
-    file(APPEND ${MY_INSTALL_FILE} "execute_process(COMMAND make installs
+    file(APPEND ${MY_INSTALL_FILE} "execute_process(COMMAND make install
         WORKING_DIRECTORY ${MY_INSTALL_BINARY}
         OUTPUT_FILE ${MY_INSTALL_LOG}/${target}-install.log
         ERROR_FILE ${MY_INSTALL_LOG}/${target}-install.log)\n")

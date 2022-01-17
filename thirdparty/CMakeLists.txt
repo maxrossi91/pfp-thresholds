@@ -252,4 +252,4 @@ if(${COMPILE_BWT2LCP})
   endif()
 endif()
 
-install(SCRIPT ${INSTALL_FILE})
+# install(SCRIPT ${INSTALL_FILE})
