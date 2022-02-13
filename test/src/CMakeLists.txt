@@ -12,6 +12,13 @@ add_executable(pfp_lcp64 pfp_lcp.cpp)
 target_link_libraries(pfp_lcp64 common pfp gsacak64 sdsl malloc_count)
 target_compile_options(pfp_lcp64 PUBLIC -DM64)
 
+add_executable(pfp_lcp_mums pfp_lcp_mums.cpp)
+target_link_libraries(pfp_lcp_mums common pfp gsacak sdsl malloc_count)
+
+add_executable(pfp_lcp_mums64 pfp_lcp_mums.cpp)
+target_link_libraries(pfp_lcp_mums64 common pfp gsacak64 sdsl malloc_count)
+target_compile_options(pfp_lcp_mums64 PUBLIC -DM64)
+
 add_executable(sdsl_thresholds sdsl_thresholds.cpp)
 target_link_libraries(sdsl_thresholds common gsacak sdsl malloc_count divsufsort divsufsort64)
 
