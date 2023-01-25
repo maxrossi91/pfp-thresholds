@@ -108,7 +108,7 @@ public:
     _elapsed_time(
       {
         isaP.resize(p.size());
-        for(int i = 0; i < saP.size(); ++i){
+        for(size_t i = 0; i < saP.size(); ++i){
           isaP[saP[i]] = i;
         }
       }
