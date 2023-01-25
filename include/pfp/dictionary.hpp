@@ -147,7 +147,7 @@ public:
     _elapsed_time(
       {
         isaD.resize(d.size());
-        for(int i = 0; i < saD.size(); ++i){
+        for(size_t i = 0; i < saD.size(); ++i){
           isaD[saD[i]] = i;
         }
       }
