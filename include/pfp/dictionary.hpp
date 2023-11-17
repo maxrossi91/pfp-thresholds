@@ -101,7 +101,7 @@ public:
     auto b_in_sa = isaD[select_b_d(b)]; // position of the phrase b in saD
 
     auto lcp_left = std::min(a_in_sa, b_in_sa) + 1;
-    auto lcp_right = max(a_in_sa, b_in_sa);
+    auto lcp_right = std::max(a_in_sa, b_in_sa);
 
     size_t lcp_a_b_i = rmq_lcp_D(lcp_left, lcp_right);
     return lcpD[lcp_a_b_i];
@@ -147,7 +147,7 @@ public:
     _elapsed_time(
       {
         isaD.resize(d.size());
-        for(int i = 0; i < saD.size(); ++i){
+        for(size_t i = 0; i < saD.size(); ++i){
           isaD[saD[i]] = i;
         }
       }

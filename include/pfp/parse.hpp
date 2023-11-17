@@ -108,7 +108,7 @@ public:
     _elapsed_time(
       {
         isaP.resize(p.size());
-        for(int i = 0; i < saP.size(); ++i){
+        for(size_t i = 0; i < saP.size(); ++i){
           isaP[saP[i]] = i;
         }
       }
@@ -155,7 +155,7 @@ public:
   {
     uint32_t max_p = p[0];
     for(size_t i = 1; i < p.size(); ++i)
-      max_p = max(max_p, p[i]);
+      max_p = std::max(max_p, p[i]);
 
     freq.resize(max_p+1,0);
     for(size_t i = 0; i < p.size(); ++i)
