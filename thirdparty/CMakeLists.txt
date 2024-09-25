@@ -104,15 +104,21 @@ else()
     message(STATUS "sdsl sources found at ${SDSL_SRC}.")
 endif()
 
-add_library(sdsl STATIC IMPORTED GLOBAL)
-set_property(TARGET sdsl PROPERTY IMPORTED_LOCATION ${SDSL_LIB})
-target_include_directories(sdsl INTERFACE ${SDSL_SRC})
+if (NOT TARGET sdsl)
+    add_library(sdsl STATIC IMPORTED GLOBAL)
+    set_property(TARGET sdsl PROPERTY IMPORTED_LOCATION ${SDSL_LIB})
+    target_include_directories(sdsl INTERFACE ${SDSL_SRC})
+endif()
 
-add_library(divsufsort STATIC IMPORTED GLOBAL)
-set_property(TARGET divsufsort PROPERTY IMPORTED_LOCATION ${DIVSUFSORT_LIB})
-    
-add_library(divsufsort64 STATIC IMPORTED GLOBAL)
-set_property(TARGET divsufsort64 PROPERTY IMPORTED_LOCATION ${DIVSUFSORT64_LIB})
+if (NOT TARGET divsufsort)  
+    add_library(divsufsort STATIC IMPORTED GLOBAL)
+    set_property(TARGET divsufsort PROPERTY IMPORTED_LOCATION ${DIVSUFSORT_LIB})
+endif()
+
+if (NOT TARGET divsufsort64)
+    add_library(divsufsort64 STATIC IMPORTED GLOBAL)
+    set_property(TARGET divsufsort64 PROPERTY IMPORTED_LOCATION ${DIVSUFSORT64_LIB})
+endif()
 
 # HTSLIB
 find_library(HTS_LIB hts)
@@ -193,9 +199,11 @@ else()
     message(STATUS "htslib sources found at ${HTS_SRC}.")
 endif()
 
-add_library(htslib STATIC IMPORTED GLOBAL)
-set_property(TARGET htslib PROPERTY IMPORTED_LOCATION ${HTS_LIB})
-target_include_directories(htslib INTERFACE ${HTS_SRC})
+if (NOT TARGET htslib)
+    add_library(htslib STATIC IMPORTED GLOBAL)
+    set_property(TARGET htslib PROPERTY IMPORTED_LOCATION ${HTS_LIB})
+    target_include_directories(htslib INTERFACE ${HTS_SRC})
+endif()
 
 # PFP++
 find_program(PFP pfp++)
