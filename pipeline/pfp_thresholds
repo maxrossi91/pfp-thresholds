@@ -160,6 +160,7 @@ def main():
  # parser.add_argument('--sum', help='compute output files sha256sum',action='store_true')
   parser.add_argument('--parsing',  help='stop after the parsing phase (debug only)',action='store_true')
   parser.add_argument('--compress',  help='compress output of the parsing phase (debug only)',action='store_true')
+  parser.add_argument('--probing','-P', help='use linear probing to avoid hash collisions during parsing',action='store_true', dest='probing')
   args = parser.parse_args()
 
   if args.f and args.t > 0 and (".fq" in args.input or ".fastq" in args.input or ".fnq" in args.input):
@@ -196,6 +197,7 @@ def main():
                 exe = os.path.join(args.bigbwt_dir,parseNT_exe),
                 wsize=args.wsize, modulus = args.mod, file=args.input)
     if args.v: command += " -v"
+    if args.probing: command += " -P"
     # if args.f: command += " -f"
     command += " -s"
     print("==== Parsing. Command:", command)
