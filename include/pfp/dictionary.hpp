@@ -41,7 +41,7 @@ class dictionary{
 public:
   std::vector<uint8_t> d;
   std::vector<uint_t> saD;
-  std::vector<uint_t> isaD;
+  std::vector<uint_t> phrase_to_rank;
   std::vector<int_t> lcpD;
   sdsl::rmq_succinct_sct<> rmq_lcp_D;
   sdsl::bit_vector b_d; // Starting position of each phrase in D
@@ -97,8 +97,8 @@ public:
     if(a == 0 || b == 0)
       return 0;
     // Compute the lcp between phrases a and b
-    auto a_in_sa = isaD[select_b_d(a)]; // position of the phrase a in saD
-    auto b_in_sa = isaD[select_b_d(b)]; // position of the phrase b in saD
+    auto a_in_sa = phrase_to_rank[a-1]; // position of the phrase a in saD
+    auto b_in_sa = phrase_to_rank[b-1]; // position of the phrase b in saD
 
     auto lcp_left = std::min(a_in_sa, b_in_sa) + 1;
     auto lcp_right = std::max(a_in_sa, b_in_sa);
@@ -143,12 +143,15 @@ public:
     );
 
     // inverse suffix array of the dictionary.
+    // stores a partial subset of the isaD
+    // only stores the position in the SA for the suffixes that denote phrase starts in the dict
     verbose("Computing ISA of dictionary");
     _elapsed_time(
       {
-        isaD.resize(d.size());
+        phrase_to_rank.resize(n_phrases() + 1);
         for(size_t i = 0; i < saD.size(); ++i){
-          isaD[saD[i]] = i;
+          if (b_d[saD[i]])
+            phrase_to_rank[rank_b_d(saD[i])] = i;
         }
       }
     );
@@ -173,7 +176,7 @@ public:
 
     written_bytes += my_serialize(d, out, child, "dictionary");
     written_bytes += my_serialize(saD, out, child, "saD");
-    written_bytes += my_serialize(isaD, out, child, "isaD");
+    // written_bytes += my_serialize(isaD, out, child, "isaD");
     written_bytes += my_serialize(lcpD, out, child, "lcpD");
     written_bytes += rmq_lcp_D.serialize(out, child, "rmq_lcp_D");
     written_bytes += b_d.serialize(out, child, "b_d");
@@ -189,7 +192,7 @@ public:
   {
     my_load(d, in);
     my_load(saD, in);
-    my_load(isaD, in);
+    // my_load(isaD, in);
     my_load(lcpD, in);
     rmq_lcp_D.load(in);
     b_d.load(in);
